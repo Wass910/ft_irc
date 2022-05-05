@@ -19,3 +19,8 @@ typedef struct User{
     int     len;
     char    msg[500];
 } User;
+
+typedef struct to_send{
+    int     *socketClient;
+    int     thread;
+} To_send;

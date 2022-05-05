@@ -1,17 +1,45 @@
 #include "utils.hpp"
 
-void function(int socketClient)
+
+void check_receive(int socketClient)
+{
+    while (1)
+    {
+        char msg[500];
+        recv(socketClient, &msg, 500, 0);
+        std::cout << msg << std::endl; 
+        strcpy(msg, "");
+    }
+    return ;
+}
+
+void function(To_send to_send)
 {
     
     std::string temp = "Welcome to our IRC ! ;) ";
     int len = temp.size();
     const char *msg = temp.c_str();
-    send(socketClient, msg, len, 0);
+    send(to_send.socketClient[to_send.thread], msg, len, 0);
     for (int i = 0; i < 5 ; i++)
     {
         User user;
-        recv(socketClient, &user, sizeof(User), 0);
-        std::cout << user.msg << std::endl;
+        recv(to_send.socketClient[to_send.thread], &user, sizeof(User), 0);
+        //std::cout << user.msg << std::endl;
+        if (0 == to_send.thread)
+        {
+            send(to_send.socketClient[1], user.msg, user.len, 0);
+            send(to_send.socketClient[2], user.msg, user.len, 0);
+        }
+        else if (1 == to_send.thread)
+        {
+            send(to_send.socketClient[0], user.msg, user.len, 0);
+            send(to_send.socketClient[2], user.msg, user.len, 0);
+        }
+        else
+        {
+            send(to_send.socketClient[1], user.msg, user.len, 0);
+            send(to_send.socketClient[0], user.msg, user.len, 0);
+        }
         
     }
     return ;
@@ -24,24 +52,34 @@ int main()
 
     addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
     addrServer.sin_family = AF_INET;
-    addrServer.sin_port = htons(30003);
+    addrServer.sin_port = htons(30000);
 
     bind(socketServer, (const struct sockaddr *)&addrServer, sizeof(addrServer));
     std::cout << "bind ; " << socketServer << std::endl;
 
     listen(socketServer, 5);
     std::cout << "listen" << std::endl;
+    
+    int *socketClient = new int[3];
+    for(int i = 0; i < 3; i++)
+    {
+        struct sockaddr_in addrClient;
+        socklen_t csize = sizeof(addrClient);
+        socketClient[i] = accept(socketServer, (struct sockaddr *)&addrClient, &csize);
+        std::cout << "accept" << std::endl;
+    }
 
-  
-    struct sockaddr_in addrClient;
-    socklen_t csize = sizeof(addrClient);
-    int socketClient = accept(socketServer, (struct sockaddr *)&addrClient, &csize);
-    std::cout << "accept" << std::endl;
-
-    std::cout << "client = " << socketClient << std::endl;
-    std::thread client (function, socketClient);
-    client.join();
-
+    for(int i = 0; i < 3; i++)
+    {
+        To_send to_send;
+        to_send.socketClient = socketClient;
+        to_send.thread = i;
+        std::cout << "client = " << socketClient[i] << std::endl;
+        std::thread client (function, to_send);
+        client.detach();
+    }
+    
+    while (1);
     std::cout << "Done GG !" << std::endl;
     return 0;
 }
