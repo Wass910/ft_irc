@@ -1,18 +1,5 @@
 #include "utils.hpp"
 
-
-void check_receive(int socketClient)
-{
-    while (1)
-    {
-        char msg[500];
-        recv(socketClient, &msg, 500, 0);
-        std::cout << msg << std::endl; 
-        strcpy(msg, "");
-    }
-    return ;
-}
-
 void function(To_send to_send)
 {
     
@@ -20,27 +7,27 @@ void function(To_send to_send)
     int len = temp.size();
     const char *msg = temp.c_str();
     send(to_send.socketClient[to_send.thread], msg, len, 0);
+    User user;
     for (int i = 0; i < 5 ; i++)
     {
-        User user;
         recv(to_send.socketClient[to_send.thread], &user, sizeof(User), 0);
         //std::cout << user.msg << std::endl;
         if (0 == to_send.thread)
         {
-            send(to_send.socketClient[1], user.msg, user.len, 0);
-            send(to_send.socketClient[2], user.msg, user.len, 0);
+            send(to_send.socketClient[1], &user, sizeof(user), 0);
+            send(to_send.socketClient[2], &user, sizeof(user), 0);
         }
         else if (1 == to_send.thread)
         {
-            send(to_send.socketClient[0], user.msg, user.len, 0);
-            send(to_send.socketClient[2], user.msg, user.len, 0);
+            send(to_send.socketClient[0], &user, sizeof(user), 0);
+            send(to_send.socketClient[2], &user, sizeof(user), 0);
         }
         else
         {
-            send(to_send.socketClient[1], user.msg, user.len, 0);
-            send(to_send.socketClient[0], user.msg, user.len, 0);
+            send(to_send.socketClient[1], &user, sizeof(user), 0);
+            send(to_send.socketClient[0], &user, sizeof(user), 0);
         }
-        
+        strcpy(user.msg, "");
     }
     return ;
 }
@@ -52,7 +39,7 @@ int main()
 
     addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
     addrServer.sin_family = AF_INET;
-    addrServer.sin_port = htons(30000);
+    addrServer.sin_port = htons(30001);
 
     bind(socketServer, (const struct sockaddr *)&addrServer, sizeof(addrServer));
     std::cout << "bind ; " << socketServer << std::endl;

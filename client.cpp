@@ -3,12 +3,13 @@
 
 void function(int socketClient)
 {
+    User user;
     while (1)
     {
-        char msg[500];
-        recv(socketClient, &msg, 500, 0);
-        std::cout << msg << std::endl; 
-        strcpy(msg, "");
+        recv(socketClient, &user, sizeof(User), 0);
+        std::cout << "incomming message : "; 
+        std::cout << user.msg << std::endl; 
+        strcpy(user.msg, "");
     }
     return ;
 }
@@ -20,7 +21,7 @@ int main()
 
     addrClient.sin_addr.s_addr = inet_addr("127.0.0.1");
     addrClient.sin_family = AF_INET;
-    addrClient.sin_port = htons(30000);
+    addrClient.sin_port = htons(30001);
 
     connect(socketClient, (const struct sockaddr *)&addrClient, sizeof(addrClient));
     std::cout << "Connecte" << std::endl;
@@ -39,6 +40,7 @@ int main()
         getline(std::cin, temp);
         user.len = temp.size();
         strcpy(user.msg, temp.c_str());
+        std::cout << "send message : " ;
         send(socketClient, &user, sizeof(User), 0);
         temp.replace(0, temp.size(), "");
     }
