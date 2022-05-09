@@ -1,7 +1,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <unistd.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -14,6 +13,9 @@
 #include <vector>
 #include <thread>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <poll.h>
 
 typedef struct User{
     int     len;
