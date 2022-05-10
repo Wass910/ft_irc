@@ -26,7 +26,7 @@ typedef struct _Server{
 
 class Server {
     public:
-        Server( int socketServer );
+        Server( void );
         Server(std::string const & name, int level);
         Server( Server const & src );
         ~Server(void);

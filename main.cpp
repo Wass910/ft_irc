@@ -3,26 +3,8 @@
 
 int main()
 {
-    int socketServer = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in addrServer;
-
-    addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
-    addrServer.sin_family = AF_INET;
-    addrServer.sin_port = htons(30023);
-
-    bind(socketServer, (const struct sockaddr *)&addrServer, sizeof(addrServer));
-    std::cout << "bind ; " << socketServer << std::endl;
-
-    listen(socketServer, 5);
-    std::cout << "listen" << std::endl;
-
+    Server server;
     User user;
-    std::string temp = "Welcome to our IRC ! ;) ";
-    int len = temp.size();
-    const char *msg = temp.c_str();
-
-	int i = 1;
-    Server server(socketServer);
     while(1)
     {
 		int e = poll(server.fds, server._nb_client, -1);

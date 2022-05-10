@@ -1,9 +1,21 @@
 #include "utils.hpp"
 
-Server::Server (int socketServer) : _nb_client(1), _nb_client_channel(0)
+Server::Server (void ) : _nb_client(1), _nb_client_channel(0)
 {
+    int socketServer = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in addrServer;
+
+    addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
+    addrServer.sin_family = AF_INET;
+    addrServer.sin_port = htons(30023);
+
+    bind(socketServer, (const struct sockaddr *)&addrServer, sizeof(addrServer));
+    std::cout << "bind ; " << socketServer << std::endl;
+
+    listen(socketServer, 5);
     this->fds[0].fd = socketServer;
 	this->fds[0].events = POLLIN;
+    std::cout << "listen" << std::endl;
     return ;
 }
 
