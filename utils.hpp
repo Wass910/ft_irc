@@ -22,7 +22,8 @@ typedef struct User{
     char    msg[500];
 } User;
 
-typedef struct to_send{
-    int     *socketClient;
-    int     thread;
-} To_send;
+typedef struct Server{
+    int                 socketClient;
+    struct sockaddr_in  addrClient;
+    socklen_t           csize;
+} Server;
