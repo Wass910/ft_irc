@@ -38,3 +38,25 @@ void Server::add_client_channel (void )
     this->inf_client.push_back(to_push);
     return ;
 }
+
+void Server::send_msg ( int x )
+{
+    User user;
+    if(this->fds[x].revents & POLLIN)
+    {
+        if(recv(this->fds[x].fd, &user, sizeof(User), 0) == 0)
+        {
+            std::cout << "USER: " << this->fds[x].fd << " disconnected." << std::endl;
+            close(this->fds[x].fd);
+            this->_nb_client_channel--;
+            if (this->_nb_client_channel == 0)
+            {
+                std::cout << "channel close \n";
+                exit(0);
+            }
+		}
+		else
+            std::cout << user.msg << std::endl;
+    }
+    return ;
+}

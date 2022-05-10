@@ -34,6 +34,7 @@ class Server {
         
         Server & operator=( Server const & src );
         void add_client_channel( void );
+        void send_msg( int x );
         
         struct pollfd fds[100];
         int     _nb_client;
