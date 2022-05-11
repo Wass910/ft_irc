@@ -22,6 +22,8 @@ typedef struct _Server{
     int                 socketClient;
     struct sockaddr_in  addrClient;
     socklen_t           csize;
+    std::string         nickname;
+    int                 nb_msg;
 } _Server;
 
 class Server {
@@ -35,12 +37,16 @@ class Server {
         Server & operator=( Server const & src );
         void add_client_channel( void );
         void send_msg( int x );
+        int get_nb_client(void);
+        int get_nb_client_channel(void);
+        struct pollfd* get_fds( void );
         
-        struct pollfd fds[100];
-        int     _nb_client;
-        int     _nb_client_channel;
     private:
         std::vector<_Server> inf_client;
+        int     _nb_client;
+        int     _nb_client_channel;
+        struct pollfd _fds[100];
+
         
         
 };

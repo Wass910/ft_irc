@@ -1,8 +1,5 @@
 #include "utils.hpp"
 
-
-
-
 int main()
 {
     int socketClient = socket(AF_INET, SOCK_STREAM, 0);
@@ -10,7 +7,7 @@ int main()
 
     addrClient.sin_addr.s_addr = inet_addr("127.0.0.1");
     addrClient.sin_family = AF_INET;
-    addrClient.sin_port = htons(30023);
+    addrClient.sin_port = htons(30011);
 
     connect(socketClient, (const struct sockaddr *)&addrClient, sizeof(addrClient));
     std::cout << "Connecte" << std::endl;
@@ -26,6 +23,13 @@ int main()
 	// int i = 1;
 	// fds[0].fd = socketClient;
 	// fds[0].events = POLLIN;
+    getline(std::cin, temp);
+    user.len = temp.size();
+    strcpy(user.msg, temp.c_str());
+    send(socketClient, &user, sizeof(User), 0);
+    char msg2[50];
+    recv(socketClient, &msg2, 50, 0);
+    std::cout << msg2 << std::endl;
     while(1)
     {
         // poll(fds, i, 10);
