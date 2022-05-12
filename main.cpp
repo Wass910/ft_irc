@@ -1,16 +1,30 @@
-#include "utils.hpp"
+#include "server.hpp"
+
 
 int main()
 {
-    Server server;
-    User user;
+	Server server;
+
+
+	std::list<pollfd> temp_lfds = server.get_lfds();
+	std::list<pollfd>::iterator begin = temp_lfds.begin();
     while(1)
     {
-		poll(server.get_fds(), server.get_nb_client(), -1);
-		if(server.get_fds()[0].revents & POLLIN)
-			server.add_client_channel();
-		for(int x = 1; x < server.get_nb_client(); x++)
-            server.send_msg(x);
+		temp_lfds = server.get_lfds();
+		begin = temp_lfds.begin();
+		int r = poll(server.get_fds(), server.get_lfds().size(), 10);
+		server.update_revents();
+		if(r) 
+        {
+			if(begin->revents & POLLIN)
+				server.addUser();
+			temp_lfds = server.get_lfds();
+			begin = temp_lfds.begin();
+			begin++;
+			for( std::list<pollfd>::iterator it = begin; it != temp_lfds.end(); it++){
+				server.servListen(it);
+			}
+		}
 	}
     return 0;
 }
