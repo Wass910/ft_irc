@@ -27,6 +27,12 @@ typedef struct User{
     char    msg[500];
 } User;
 
+typedef struct clients{
+	struct sockaddr_in addrClient;
+	socklen_t csize;
+	int socket;
+}clients;
+
 class Server{
 	public:
 		Server();
