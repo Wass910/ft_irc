@@ -24,6 +24,7 @@ typedef struct _Server{
     socklen_t           csize;
     std::string         nickname;
     int                 nb_msg;
+
 } _Server;
 
 class Server {
@@ -40,12 +41,14 @@ class Server {
         int get_nb_client(void);
         int get_nb_client_channel(void);
         struct pollfd* get_fds( void );
+        void new_fds( int x );
+        void new_vector( int x );
         
     private:
         std::vector<_Server> inf_client;
         int     _nb_client;
         int     _nb_client_channel;
-        struct pollfd _fds[100];
+        struct pollfd _fds[10];
 
         
         

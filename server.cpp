@@ -7,7 +7,7 @@ Server::Server (void ) : _nb_client(1), _nb_client_channel(0)
 
     addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
     addrServer.sin_family = AF_INET;
-    addrServer.sin_port = htons(30011);
+    addrServer.sin_port = htons(41091);
 
     bind(socketServer, (const struct sockaddr *)&addrServer, sizeof(addrServer));
     std::cout << "bind ; " << socketServer << std::endl;
@@ -56,6 +56,49 @@ void Server::add_client_channel (void )
     return ;
 }
 
+void Server::new_fds(int x)
+{
+    struct pollfd new_fds[10];
+    int count  = 0;
+    while(count < x)
+    {
+        new_fds[count] = this->_fds[count]; 
+        count++;
+    }
+    x++;
+    for(int i = x - 1; x < 10 ; i++)
+    {
+        new_fds[i] = this->_fds[x];
+        x++;
+    }
+    new_fds[9].fd = 0;
+    for(int i = 0; i < 10; i++)
+        this->_fds[i] = new_fds[i];
+}
+
+void Server::new_vector(int x)
+{
+    std::vector<_Server> new_vector;
+    int count  = 0;
+    std::vector<_Server>::iterator it = this->inf_client.begin();
+    std::vector<_Server>::iterator ite = this->inf_client.end();
+
+    while(count < x)
+    {
+        new_vector.push_back(*it);
+        count++;
+        it++;
+    }
+    it++;
+    while(it != ite)
+    {
+        new_vector.push_back(*it);
+        it++;
+    }
+    this->inf_client.swap(new_vector);
+}
+
+
 void Server::send_msg ( int x )
 {
     User user;
@@ -64,9 +107,10 @@ void Server::send_msg ( int x )
         if(recv(this->_fds[x].fd, &user, sizeof(User), 0) == 0)
         {
             std::cout << this->inf_client[x - 1].nickname << " disconnected." << std::endl;
-            close(this->_fds[x].fd);
+            new_fds(x);
             this->_nb_client_channel--;
-            this->inf_client.erase(this->inf_client.begin() + x - 1);
+            this->_nb_client--;
+            new_vector(x - 1);
             if (this->_nb_client_channel == 0)
             {
                 std::cout << "channel close \n";
@@ -84,7 +128,7 @@ void Server::send_msg ( int x )
                 }
                 else 
                 {
-                    send(this->_fds[x].fd, "Valide", 10, 0); 
+                    send(this->_fds[x].fd, "Valide", 7, 0); 
                     this->inf_client[x - 1].nickname = test;
                     this->inf_client[x - 1].nb_msg++;
                 }
