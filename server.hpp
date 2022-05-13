@@ -45,29 +45,31 @@ class Server{
 		Server();
 		~Server();
 
-		void setup();
 		void addUser();
 		void servListen(std::list<pollfd>::iterator it);
-		void build_fds();
 		void update_revents();
-		void display_fds();
-		bool channel_open(std::string channel_name);
-		void user_left(std::string channel_name);
 		struct pollfd *get_fds();
-
 		std::list<pollfd> get_lfds();
+		
 	private:
 		struct pollfd _fds[100];
 		struct sockaddr_in _addrServer;
 
+		void build_fds();
+		void display_fds();
+		void user_left( std::list<pollfd>::iterator it );
+		bool channel_open(std::string channel_name);
+		void channel_empty(std::string channel_name);
+		void create_channel(int user, std::list<clients>::iterator it_cli, char msg[500]);
+		
 		int _clients;
 		int _serverSocket;
 
 		std::string _wlcmsg = "Welcome to our IRC ! enter a channel ";
 		std::list<pollfd> _lfds;
 		std::list<std::string> _channel;
-		std::list<clients> _inf_clients;
-		std::list<channel> _in_channel;
+		std::list<clients> _user_data;
+		std::list<channel> _channel_data;
 };
 
 #endif //SERVER_H

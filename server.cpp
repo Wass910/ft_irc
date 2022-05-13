@@ -5,7 +5,7 @@ Server::Server(void) : _clients(0)
     this->_serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     this->_addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
     this->_addrServer.sin_family = AF_INET;
-    this->_addrServer.sin_port = htons(30013);
+    this->_addrServer.sin_port = htons(30133);
     struct pollfd lserver;
 
 	bind(this->_serverSocket, (const struct sockaddr *)&this->_addrServer, sizeof(this->_addrServer));
@@ -42,7 +42,7 @@ void Server::addUser()
 	send(new_fd.fd, msg, len, 0);
 	this->_clients++;
     this->_lfds.push_back(new_fd);
-    this->_inf_clients.push_back(new_cli);
+    this->_user_data.push_back(new_cli);
     build_fds();
 	return ;
 }
@@ -53,11 +53,10 @@ bool Server::channel_open(std::string channel_name)
     {
         if (*beg == channel_name)
         {    
-            std::list<channel>::iterator it = this->_in_channel.begin();
-            while ( it->name != channel_name )
-            {
+            std::list<channel>::iterator it = this->_channel_data.begin();
+            std::list<channel>::iterator ite = this->_channel_data.end();
+            while ( it->name != channel_name && it != ite)
                 it++;
-            }
             it->nb_client++;
             return true;
         }    
@@ -65,17 +64,66 @@ bool Server::channel_open(std::string channel_name)
     return false;
 }
 
-void Server::user_left(std::string channel_name)
+void Server::channel_empty(std::string channel_name)
 {
       
-    std::list<channel>::iterator it = this->_in_channel.begin();
-    while ( it->name != channel_name )
+    std::list<channel>::iterator it = this->_channel_data.begin();
+    std::list<channel>::iterator ite = this->_channel_data.end();
+    while ( it->name != channel_name && it != ite)
         it++;
-    it->nb_client--;
-    if (it->nb_client == 0){
-        std::cout << "channel " <<  channel_name << " is close \n";
-        this->_in_channel.erase(it);
+    if (it != ite){
+        it->nb_client--;
+        if (it->nb_client == 0){
+            std::cout << "channel " <<  channel_name << " is close \n";
+            this->_channel_data.erase(it);
+            this->_channel.remove(channel_name);
+        }
     }
+    return ;
+}
+
+void Server::create_channel(int user, std::list<clients>::iterator it_cli, char msg[500])
+{
+    it_cli->channel.assign(msg);
+    std::cout << "channel " << it_cli->channel << " creer\n";
+    if (this->_channel.size() == 0){
+        this->_channel.push_back(it_cli->channel);
+        channel channel;
+        channel.name = it_cli->channel;
+        channel.nb_client = 1;
+        this->_channel_data.push_back(channel);
+    }
+    else {
+        if (channel_open(it_cli->channel) == false){
+            this->_channel.push_back(it_cli->channel);
+            channel channel;
+            channel.name = it_cli->channel;
+            channel.nb_client = 1;
+            this->_channel_data.push_back(channel);
+            std::cout << " on est laaa \n";
+        }  
+
+    }
+    
+    send(it_cli->socket, "channel creer ", 14, 0);
+    it_cli->nb_msg++;
+}
+
+void Server::user_left(std::list<pollfd>::iterator it)
+{
+    std::list<clients>::iterator it_cli = this->_user_data.begin();   
+    while (it_cli->socket != it->fd)
+        it_cli++;
+    std::cout << "USER[" << it->fd << "] disconnected." << std::endl;
+    close(it->fd);
+    this->_clients--;
+    std::list<pollfd>::iterator beg = this->_lfds.begin();
+    while (beg->fd != it->fd)
+        beg++;
+    this->_lfds.erase(beg);
+    channel_empty(it_cli->channel);
+    this->_user_data.erase(it_cli);
+    build_fds();
     return ;
 }
 
@@ -84,50 +132,14 @@ void Server::servListen(std::list<pollfd>::iterator it)
 	User user;
     if(it->revents & POLLIN){
         if(recv(it->fd, &user, sizeof(User), 0) == 0)
-        {
-            std::list<clients>::iterator it_cli = this->_inf_clients.begin();   
-            while (it_cli->socket != it->fd)
-                it_cli++;
-			std::cout << "USER[" << it->fd << "] disconnected." << std::endl;
-			close(it->fd);
-			this->_clients--;
-            std::list<pollfd>::iterator beg = this->_lfds.begin();
-            while (beg->fd != it->fd)
-                beg++;
-            this->_lfds.erase(beg);
-            user_left(it_cli->channel);
-            this->_inf_clients.erase(it_cli);
-            build_fds();
-		}
+            user_left(it);
 		else 
         {
-            std::list<clients>::iterator it_cli = this->_inf_clients.begin();   
+            std::list<clients>::iterator it_cli = this->_user_data.begin();   
             while (it_cli->socket != it->fd)
                 it_cli++;
-            if (it_cli->nb_msg == 0){
-                it_cli->channel.assign(user.msg);
-                std::cout << "channel " << it_cli->channel << " creer\n";
-                if (this->_channel.empty() == true){
-                    this->_channel.push_back(it_cli->channel);
-                    channel channel;
-                    channel.name = it_cli->channel;
-                    channel.nb_client = 1;
-                    this->_in_channel.push_back(channel);
-                }
-                else 
-                {
-                    if (channel_open(it_cli->channel) == false){
-                        this->_channel.push_back(it_cli->channel);
-                        channel channel;
-                        channel.name = it_cli->channel;
-                        channel.nb_client = 1;
-                        this->_in_channel.push_back(channel);
-                    }  
-
-                }
-                send(it->fd, "channel creer ", 14, 0);
-                it_cli->nb_msg++;
-            }
+            if (it_cli->nb_msg == 0)
+                create_channel(it->fd, it_cli, user.msg);
             else
        	        std::cout << "USER[" << it_cli->socket << "]: in " << it_cli->channel << " : " << user.msg << std::endl;
         }
@@ -171,8 +183,8 @@ void Server::update_revents( void )
 
 void Server::display_fds( void )
 {
-    std::list<channel>::iterator it = this->_in_channel.begin();
-    std::list<channel>::iterator ite = this->_in_channel.end();
+    std::list<channel>::iterator it = this->_channel_data.begin();
+    std::list<channel>::iterator ite = this->_channel_data.end();
 
     while(it != ite)
     {
