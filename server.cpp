@@ -49,15 +49,11 @@ void Server::addUser()
 
 bool Server::channel_open(std::string channel_name)
 {
-    for (std::list<std::string>::iterator beg = this->_channel.begin(); beg != this->_channel.end(); beg++)
+    for (std::list<channel>::iterator beg = this->_channel_data.begin(); beg != this->_channel_data.end(); beg++)
     {
-        if (*beg == channel_name)
+        if (beg->name == channel_name)
         {    
-            std::list<channel>::iterator it = this->_channel_data.begin();
-            std::list<channel>::iterator ite = this->_channel_data.end();
-            while ( it->name != channel_name && it != ite)
-                it++;
-            it->nb_client++;
+            beg->nb_client++;
             return true;
         }    
     }
@@ -66,7 +62,6 @@ bool Server::channel_open(std::string channel_name)
 
 void Server::channel_empty(std::string channel_name)
 {
-      
     std::list<channel>::iterator it = this->_channel_data.begin();
     std::list<channel>::iterator ite = this->_channel_data.end();
     while ( it->name != channel_name && it != ite)
@@ -76,7 +71,6 @@ void Server::channel_empty(std::string channel_name)
         if (it->nb_client == 0){
             std::cout << "channel " <<  channel_name << " is close \n";
             this->_channel_data.erase(it);
-            this->_channel.remove(channel_name);
         }
     }
     return ;
@@ -86,8 +80,7 @@ void Server::create_channel(int user, std::list<clients>::iterator it_cli, char 
 {
     it_cli->channel.assign(msg);
     std::cout << "channel " << it_cli->channel << " creer\n";
-    if (this->_channel.size() == 0){
-        this->_channel.push_back(it_cli->channel);
+    if (this->_channel_data.size() == 0){
         channel channel;
         channel.name = it_cli->channel;
         channel.nb_client = 1;
@@ -95,16 +88,13 @@ void Server::create_channel(int user, std::list<clients>::iterator it_cli, char 
     }
     else {
         if (channel_open(it_cli->channel) == false){
-            this->_channel.push_back(it_cli->channel);
             channel channel;
             channel.name = it_cli->channel;
             channel.nb_client = 1;
             this->_channel_data.push_back(channel);
-            std::cout << " on est laaa \n";
         }  
 
     }
-    
     send(it_cli->socket, "channel creer ", 14, 0);
     it_cli->nb_msg++;
 }

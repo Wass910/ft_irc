@@ -67,7 +67,6 @@ class Server{
 
 		std::string _wlcmsg = "Welcome to our IRC ! enter a channel ";
 		std::list<pollfd> _lfds;
-		std::list<std::string> _channel;
 		std::list<clients> _user_data;
 		std::list<channel> _channel_data;
 };
