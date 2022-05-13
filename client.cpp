@@ -1,8 +1,5 @@
 #include "server.hpp"
 
-
-
-
 int main()
 {
     int socketClient = socket(AF_INET, SOCK_STREAM, 0);
@@ -10,7 +7,7 @@ int main()
 
     addrClient.sin_addr.s_addr = inet_addr("127.0.0.1");
     addrClient.sin_family = AF_INET;
-    addrClient.sin_port = htons(30002);
+    addrClient.sin_port = htons(30013);
 
     connect(socketClient, (const struct sockaddr *)&addrClient, sizeof(addrClient));
     std::cout << "Connecte" << std::endl;
@@ -22,6 +19,14 @@ int main()
     std::cout << msg << std::endl;
     std::string temp;
     User user;
+    getline(std::cin, temp);
+    user.len = temp.size();
+    strcpy(user.msg, temp.c_str());
+    send(socketClient, &user, sizeof(User), 0);
+    temp.replace(0, temp.size(), "");
+    char msg2[500];
+    recv(socketClient, &msg2, 500, 0);
+    std::cout << msg2 << std::endl;
     while(1){
         getline(std::cin, temp);
         user.len = temp.size();

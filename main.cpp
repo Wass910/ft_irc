@@ -4,10 +4,9 @@
 int main()
 {
 	Server server;
-
-
 	std::list<pollfd> temp_lfds = server.get_lfds();
 	std::list<pollfd>::iterator begin = temp_lfds.begin();
+	
     while(1)
     {
 		temp_lfds = server.get_lfds();
