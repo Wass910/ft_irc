@@ -22,6 +22,9 @@
 #include <vector>
 #include <list>
 
+# define JOIN 1
+# define QUIT 2
+
 typedef struct User{
     int     len;
     char    msg[500];
@@ -32,6 +35,9 @@ typedef struct clients{
 	socklen_t csize;
 	int socket;
 	int nb_msg;
+	std::string username;
+	std::string password;
+	std::string name;
 	std::string channel;
 }clients;
 
@@ -57,10 +63,12 @@ class Server{
 
 		void build_fds();
 		void display_fds();
+		void setup_username( std::string nickname, std::list<clients>::iterator it_cli);
+		void setup_password( std::string password, std::list<clients>::iterator it_cli);
 		void user_left( std::list<pollfd>::iterator it );
 		bool channel_open(std::string channel_name);
 		void channel_empty(std::string channel_name);
-		void create_channel(int user, std::list<clients>::iterator it_cli, char msg[500]);
+		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg);
 		
 		int _clients;
 		int _serverSocket;

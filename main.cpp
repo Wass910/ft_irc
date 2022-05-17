@@ -11,9 +11,8 @@ int main()
     {
 		temp_lfds = server.get_lfds();
 		begin = temp_lfds.begin();
-		int r = poll(server.get_fds(), server.get_lfds().size(), 10);
 		server.update_revents();
-		if(r) 
+		if(poll(server.get_fds(), server.get_lfds().size(), 10)) 
         {
 			if(begin->revents & POLLIN)
 				server.addUser();
