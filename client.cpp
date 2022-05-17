@@ -21,16 +21,16 @@ int main()
 
     addrClient.sin_addr.s_addr = inet_addr("127.0.0.1");
     addrClient.sin_family = AF_INET;
-    addrClient.sin_port = htons(30000);
+    addrClient.sin_port = htons(30003);
 
     connect(socketClient, (const struct sockaddr *)&addrClient, sizeof(addrClient));
     std::cout << "Connecte" << std::endl;
 
 
 
-    char msg[500];
-    recv(socketClient, &msg, 500, 0);
-    std::cout << msg << std::endl;
+    // char msg[500];
+    // recv(socketClient, &msg, 500, 0);
+    // std::cout << msg << std::endl;
     std::string temp;
     User user;
     std::thread receive(function, socketClient);

@@ -5,7 +5,7 @@ Server::Server(void) : _clients(0)
     this->_serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     this->_addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
     this->_addrServer.sin_family = AF_INET;
-    this->_addrServer.sin_port = htons(30000);
+    this->_addrServer.sin_port = htons(30019);
     struct pollfd lserver;
 
 	bind(this->_serverSocket, (const struct sockaddr *)&this->_addrServer, sizeof(this->_addrServer));
@@ -145,8 +145,10 @@ void Server::servListen(std::list<pollfd>::iterator it)
 	User user;
     std::string temp;
     int rec;
+    std::cout << "non" << std::endl;
     if(it->revents & POLLIN){
-        rec = recv(it->fd, &user, sizeof(User), 0);
+        std::cout << "oui" << std::endl;
+        rec = recv(it->fd, &user.msg, sizeof(user.msg), 0);
         temp.assign(user.msg);
         if(rec == 0 || temp == "/QUIT")
             user_left(it);
