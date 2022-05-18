@@ -5,7 +5,7 @@ Server::Server(void) : _clients(0)
     this->_serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     this->_addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
     this->_addrServer.sin_family = AF_INET;
-    this->_addrServer.sin_port = htons(30019);
+    this->_addrServer.sin_port = htons(31930);
     struct pollfd lserver;
 
 	bind(this->_serverSocket, (const struct sockaddr *)&this->_addrServer, sizeof(this->_addrServer));
@@ -28,8 +28,6 @@ void Server::addUser()
 {
 	if(this->_clients == 9)
 		return ;
-	int len = this->_wlcmsg.size();
-    const char *msg = this->_wlcmsg.c_str();
 	clients new_cli;
     struct pollfd new_fd;
 
@@ -39,9 +37,8 @@ void Server::addUser()
     std::cout << "USER[" << new_cli.socket << "]->[" << inet_ntoa(new_cli.addrClient.sin_addr) <<"] connected." << std::endl;
 	new_fd.fd = new_cli.socket;
 	new_fd.events = POLLIN;
-    std::cout << new_fd.fd << " test\n";
-	//send(new_fd.fd, msg, len, 0);
-     std::cout << new_fd.fd << " test\n";
+    send(new_fd.fd, this->_wlcmsg.data(), this->_wlcmsg.size(), 0);
+    send(new_fd.fd, this->_wlcmsg2.data(), this->_wlcmsg2.size(), 0);
 	this->_clients++;
     this->_lfds.push_back(new_fd);
     this->_user_data.push_back(new_cli);
@@ -119,16 +116,18 @@ void Server::user_left(std::list<pollfd>::iterator it)
     return ;
 }
 
-void Server::setup_username( std::string username, std::list<clients>::iterator it_cli )
+void Server::setup_username( std::string username, std::list<clients>::iterator it_cli, int first )
 {
-    if (username.size() > 9)
+    //std::cout << "test = " << "|"<< username << "|"  << "   first " << first << std::endl;
+    //std::cout << "test = " << username.size() << std::endl;
+    /* if (username.size() > 14)
     {
         send(it_cli->socket, "Username is under 9 character.", 30, 0);
         return ;
-    }
+    } */
     if (it_cli->username.empty() == false)
         it_cli->username.clear();
-    it_cli->username.insert(it_cli->username.begin(), username.begin()+6, username.end());
+    it_cli->username.insert(it_cli->username.begin(), username.begin()+first+5, username.end());
     return ;
 }
 
@@ -144,12 +143,13 @@ void Server::servListen(std::list<pollfd>::iterator it)
 {
 	User user;
     std::string temp;
+    std::string nick = "NICK ";
     int rec;
-    std::cout << "non" << std::endl;
+    //std::cout << "voici le fd " << it->fd << std::endl;
     if(it->revents & POLLIN){
-        std::cout << "oui" << std::endl;
         rec = recv(it->fd, &user.msg, sizeof(user.msg), 0);
         temp.assign(user.msg);
+        std::cout << "msg = " << temp << std::endl;
         if(rec == 0 || temp == "/QUIT")
             user_left(it);
 		else 
@@ -157,17 +157,19 @@ void Server::servListen(std::list<pollfd>::iterator it)
             std::list<clients>::iterator it_cli = this->_user_data.begin();  
             while (it_cli->socket != it->fd)
                 it_cli++;
-            if (temp.find("/JOIN ", 0, 6) != std::string::npos)
-                create_channel(it->fd, it_cli, temp);
-            if (temp.find("/NICK ", 0, 6) != std::string::npos)
-                setup_username(temp, it_cli);
-            if (temp.find("/PASS ", 0, 6) != std::string::npos)
-                setup_password(temp, it_cli);
+            /* if (temp.find("/JOIN ", 0, 6) != std::string::npos)
+                create_channel(it->fd, it_cli, temp); */
+            if (temp.find(nick, 0) != std::string::npos){
+                setup_username(temp, it_cli, temp.find(nick, 0));
+            }
+            /* if (temp.find("/PASS ", 0, 6) != std::string::npos)
+                setup_password(temp, it_cli); */
             else
             {
                 if (it_cli->channel.empty() == false)
        	            std::cout << "USER[" << it_cli->username << " et pass " << it_cli->password <<  "]: in " << it_cli->channel << " : " << user.msg << std::endl;
             }
+            
         }
         display_fds();
     }
