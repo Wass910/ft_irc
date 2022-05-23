@@ -195,7 +195,7 @@ void Server::servListen(std::list<pollfd>::iterator it)
                     for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
                     {
                         if (it_cli->socket != to_send->socket)
-                            send(to_send->socket, temp.data() , temp.size(), 0);
+                            send(to_send->socket, temp.c_str() , temp.size(), 0);
                     }
                 }
             }
