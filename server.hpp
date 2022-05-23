@@ -69,7 +69,7 @@ class Server{
 		bool channel_open(std::string channel_name);
 		void channel_empty(std::string channel_name);
 		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg);
-		
+		void delete_clrf(std::string temp);
 		int _clients;
 		int _serverSocket;
 

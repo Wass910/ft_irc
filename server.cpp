@@ -5,7 +5,7 @@ Server::Server(void) : _clients(0)
     this->_serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     this->_addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
     this->_addrServer.sin_family = AF_INET;
-    this->_addrServer.sin_port = htons(31930);
+    this->_addrServer.sin_port = htons(31933);
     struct pollfd lserver;
 
 	bind(this->_serverSocket, (const struct sockaddr *)&this->_addrServer, sizeof(this->_addrServer));
@@ -77,7 +77,7 @@ void Server::channel_empty(std::string channel_name)
 
 void Server::create_channel(int user, std::list<clients>::iterator it_cli, std::string msg)
 {
-    it_cli->channel.insert(it_cli->channel.begin(), msg.begin()+6, msg.end());
+    it_cli->channel.insert(it_cli->channel.begin(), msg.begin()+5, msg.end());
     std::cout << "channel " << it_cli->channel << " creer\n";
     if (this->_channel_data.size() == 0){
         channel channel;
@@ -139,6 +139,26 @@ void Server::setup_password( std::string password, std::list<clients>::iterator 
     return ;
 }
 
+void Server::delete_clrf(std::string temp)
+{
+    int i = 0;
+    int to_fill = 0;
+    char wait[temp.size()];
+
+    while (i > temp.size())
+    {
+        if (temp[i] != '\n' && temp[i] != '\r')
+        {
+            wait[to_fill] = temp[i];
+            to_fill++;
+        }
+        i++;
+    }
+    temp.clear();
+    temp.assign(wait);
+    return ;
+}
+
 void Server::servListen(std::list<pollfd>::iterator it) 
 {
 	User user;
@@ -149,16 +169,18 @@ void Server::servListen(std::list<pollfd>::iterator it)
     if(it->revents & POLLIN){
         rec = recv(it->fd, &user.msg, sizeof(user.msg), 0);
         temp.assign(user.msg);
+        std::cout << "msg before = " << temp << std::endl;
+        delete_clrf(temp);
         std::cout << "msg = " << temp << std::endl;
-        if(rec == 0 || temp == "/QUIT")
+        if(rec == 0 || temp == "quit")
             user_left(it);
 		else 
         {
             std::list<clients>::iterator it_cli = this->_user_data.begin();  
             while (it_cli->socket != it->fd)
                 it_cli++;
-            /* if (temp.find("/JOIN ", 0, 6) != std::string::npos)
-                create_channel(it->fd, it_cli, temp); */
+            if (temp.find("JOIN ", 0, 5) != std::string::npos)
+                create_channel(it->fd, it_cli, temp);
             if (temp.find(nick, 0) != std::string::npos){
                 setup_username(temp, it_cli, temp.find(nick, 0));
             }
@@ -167,11 +189,18 @@ void Server::servListen(std::list<pollfd>::iterator it)
             else
             {
                 if (it_cli->channel.empty() == false)
-       	            std::cout << "USER[" << it_cli->username << " et pass " << it_cli->password <<  "]: in " << it_cli->channel << " : " << user.msg << std::endl;
+       	        {
+                    temp = temp + "\r\n";
+                    std::list<clients>::iterator to_send = this->_user_data.begin(); 
+                    for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
+                    {
+                        if (it_cli->socket != to_send->socket)
+                            send(to_send->socket, temp.data() , temp.size(), 0);
+                    }
+                }
             }
             
         }
-        display_fds();
     }
 return ;
 }
