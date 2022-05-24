@@ -1,11 +1,15 @@
 #include "server.hpp"
 
-Server::Server(void) : _clients(0) 
+Server::Server(void) {
+	return ;
+}
+
+Server::Server( int port ) : _clients(0) 
 {
     this->_serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     this->_addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
     this->_addrServer.sin_family = AF_INET;
-    this->_addrServer.sin_port = htons(31933);
+    this->_addrServer.sin_port = htons(port);
     struct pollfd lserver;
 
 	bind(this->_serverSocket, (const struct sockaddr *)&this->_addrServer, sizeof(this->_addrServer));
@@ -78,8 +82,8 @@ void Server::channel_empty(std::string channel_name)
 void Server::create_channel(int user, std::list<clients>::iterator it_cli, std::string msg)
 {
     it_cli->channel.insert(it_cli->channel.begin(), msg.begin()+5, msg.end());
-    std::cout << "channel " << it_cli->channel << " creer\n";
     if (this->_channel_data.size() == 0){
+        std::cout << "channel " << it_cli->channel << " creer\n";
         channel channel;
         channel.name = it_cli->channel;
         channel.nb_client = 1;
@@ -87,6 +91,7 @@ void Server::create_channel(int user, std::list<clients>::iterator it_cli, std::
     }
     else {
         if (channel_open(it_cli->channel) == false){
+            std::cout << "channel " << it_cli->channel << " existe\n";
             channel channel;
             channel.name = it_cli->channel;
             channel.nb_client = 1;
@@ -94,7 +99,6 @@ void Server::create_channel(int user, std::list<clients>::iterator it_cli, std::
         }  
 
     }
-    send(it_cli->socket, "channel creer ", 14, 0);
     it_cli->nb_msg++;
 }
 
@@ -127,7 +131,7 @@ void Server::setup_username( std::string username, std::list<clients>::iterator 
     } */
     if (it_cli->username.empty() == false)
         it_cli->username.clear();
-    it_cli->username.insert(it_cli->username.begin(), username.begin()+first+5, username.end());
+    it_cli->username.insert(it_cli->username.begin(), username.begin()+first+6, username.end());
     return ;
 }
 
@@ -141,21 +145,53 @@ void Server::setup_password( std::string password, std::list<clients>::iterator 
 
 void Server::delete_clrf(std::string temp)
 {
-    int i = 0;
-    int to_fill = 0;
-    char wait[temp.size()];
+    std::string first;
+    std::string::iterator it = temp.begin();
+    std::string::iterator position = temp.begin();
 
-    while (i > temp.size())
+    while (it != temp.end())
     {
-        if (temp[i] != '\n' && temp[i] != '\r')
+        if (*it == '\r')
         {
-            wait[to_fill] = temp[i];
-            to_fill++;
+            first.assign(position, it);
+            this->cmd.push_back(first);
+            first.clear();
+            position = it;
+            position = position + 2;
         }
-        i++;
+        it++;
     }
-    temp.clear();
-    temp.assign(wait);
+    for (std::vector<std::string>::iterator it = this->cmd.begin(); it != this->cmd.end(); it++)
+    {
+        std::cout << "cmd = |" << *it << "|\n";
+    }
+
+    return ;
+}
+
+void Server::what_cmd(std::list<clients>::iterator it_cli)
+{
+    std::vector<std::string>::iterator it = cmd.begin();
+
+    while (it != cmd.end())
+    {
+        if (it->find("JOIN ", 0, 5) != std::string::npos)
+            create_channel(it_cli->socket, it_cli, *it);
+        else if (it->find("NICK ", 0, 5) != std::string::npos)
+            setup_username(*it, it_cli, it->find("NICK", 0, 5));
+        else if (it->find("PRIVMSG ", 0, 7) != std::string::npos)
+        {
+            *it = *it + "\r\n";
+            std::list<clients>::iterator to_send = this->_user_data.begin(); 
+            *it = ":" + it_cli->username + "!user42@user42 " + *it;
+            for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
+            {
+                if (it_cli->socket != to_send->socket)
+                    send(to_send->socket, it->c_str() , it->size(), 0);
+            }
+        }    
+        it++;
+    }
     return ;
 }
 
@@ -163,46 +199,24 @@ void Server::servListen(std::list<pollfd>::iterator it)
 {
 	User user;
     std::string temp;
-    std::string nick = "NICK ";
     int rec;
-    //std::cout << "voici le fd " << it->fd << std::endl;
     if(it->revents & POLLIN){
         rec = recv(it->fd, &user.msg, sizeof(user.msg), 0);
         temp.assign(user.msg);
-        std::cout << "msg before = " << temp << std::endl;
         delete_clrf(temp);
-        std::cout << "msg = " << temp << std::endl;
-        if(rec == 0 || temp == "quit")
+        //ici le vector est setup
+        if(rec == 0)
             user_left(it);
 		else 
         {
             std::list<clients>::iterator it_cli = this->_user_data.begin();  
             while (it_cli->socket != it->fd)
                 it_cli++;
-            if (temp.find("JOIN ", 0, 5) != std::string::npos)
-                create_channel(it->fd, it_cli, temp);
-            if (temp.find(nick, 0) != std::string::npos){
-                setup_username(temp, it_cli, temp.find(nick, 0));
-            }
-            /* if (temp.find("/PASS ", 0, 6) != std::string::npos)
-                setup_password(temp, it_cli); */
-            else
-            {
-                if (it_cli->channel.empty() == false)
-       	        {
-                    temp = temp + "\r\n";
-                    std::list<clients>::iterator to_send = this->_user_data.begin(); 
-                    for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
-                    {
-                        if (it_cli->socket != to_send->socket)
-                            send(to_send->socket, temp.c_str() , temp.size(), 0);
-                    }
-                }
-            }
-            
+            what_cmd(it_cli);
         }
     }
-return ;
+    this->cmd.clear();
+    return ;
 }
 
 struct pollfd *Server::get_fds( void )

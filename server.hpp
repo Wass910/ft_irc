@@ -49,6 +49,7 @@ typedef struct channel{
 class Server{
 	public:
 		Server();
+		Server( int port);
 		~Server();
 
 		void addUser();
@@ -70,6 +71,7 @@ class Server{
 		void channel_empty(std::string channel_name);
 		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg);
 		void delete_clrf(std::string temp);
+		void what_cmd(std::list<clients>::iterator it_cli);
 		int _clients;
 		int _serverSocket;
 
@@ -78,6 +80,7 @@ class Server{
 		std::list<pollfd> _lfds;
 		std::list<clients> _user_data;
 		std::list<channel> _channel_data;
+		std::vector<std::string> cmd;
 };
 
 #endif //SERVER_H

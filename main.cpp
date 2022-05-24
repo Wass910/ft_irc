@@ -1,9 +1,9 @@
 #include "server.hpp"
+#include <stdlib.h> 
 
-
-int main()
+int main(int argc, char **argv)
 {
-	Server server;
+	Server server(std::atoi(argv[1]));
 	std::list<pollfd> temp_lfds = server.get_lfds();
 	std::list<pollfd>::iterator begin = temp_lfds.begin();
 	
