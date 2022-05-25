@@ -1,7 +1,5 @@
 #include "server.hpp"
 
-
-
 void function(int socketClient)
 {
     char msg[500];
@@ -26,11 +24,6 @@ int main()
     connect(socketClient, (const struct sockaddr *)&addrClient, sizeof(addrClient));
     std::cout << "Connecte" << std::endl;
 
-
-
-    // char msg[500];
-    // recv(socketClient, &msg, 500, 0);
-    // std::cout << msg << std::endl;
     std::string temp;
     User user;
     std::thread receive(function, socketClient);

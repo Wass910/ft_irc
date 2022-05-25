@@ -39,6 +39,7 @@ typedef struct clients{
 	std::string password;
 	std::string name;
 	std::string channel;
+	std::string host;
 }clients;
 
 typedef struct channel{
@@ -66,12 +67,15 @@ class Server{
 		void display_fds();
 		void setup_username( std::string nickname, std::list<clients>::iterator it_cli, int first);
 		void setup_password( std::string password, std::list<clients>::iterator it_cli);
+		void commandPART(std::list<clients>::iterator it_cli);
+		void setup_host( std::string host, std::list<clients>::iterator it_cli );
 		void user_left( std::list<pollfd>::iterator it );
 		bool channel_open(std::string channel_name);
 		void channel_empty(std::string channel_name);
 		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg);
 		void delete_clrf(std::string temp);
 		void what_cmd(std::list<clients>::iterator it_cli);
+		std::string cut_word_space( std::string to_cut, std::string::iterator it );
 		int _clients;
 		int _serverSocket;
 
