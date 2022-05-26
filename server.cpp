@@ -78,27 +78,26 @@ void Server::channel_empty(std::string channel_name)
     return ;
 }
 
-void Server::create_channel(int user, std::list<clients>::iterator it_cli, std::string msg)
+void Server::create_channel(int user, std::list<clients>::iterator it_cli, std::string msg, std::string channel_name)
 {
-    it_cli->channel.insert(it_cli->channel.begin(), msg.begin()+5, msg.end());
+    it_cli->channel.push_back(channel_name);
     if (this->_channel_data.size() == 0){
-        std::cout << "channel " << it_cli->channel << " creer\n";
+        std::cout << "channel " << channel_name << " creer\n";
         channel channel;
-        channel.name = it_cli->channel;
+        channel.name = channel_name;
         channel.nb_client = 1;
         channel.client_socket.push_back(user);
         this->_channel_data.push_back(channel);
     }
     else {
-        if (channel_open(it_cli->channel, user) == false){
-            std::cout << "channel " << it_cli->channel << " existe\n";
+        if (channel_open(channel_name, user) == false){
+            std::cout << "channel " << channel_name << " existe\n";
             channel channel;
-            channel.name = it_cli->channel;
+            channel.name = channel_name;
             channel.nb_client = 1;
             channel.client_socket.push_back(user);
             this->_channel_data.push_back(channel);
         }  
-
     }
 }
 
@@ -114,7 +113,7 @@ void Server::user_left(std::list<pollfd>::iterator it)
     while (beg->fd != it->fd)
         beg++;
     this->_lfds.erase(beg);
-    channel_empty(it_cli->channel);
+    //channel_empty(it_cli->channel);
     this->_user_data.erase(it_cli);
     build_fds();
     return ;
@@ -256,22 +255,23 @@ void Server::commandPART(std::list<clients>::iterator it_cli, std::vector<std::s
 
 void Server::commandJOIN( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it )
 {
-    create_channel(it_cli->socket, it_cli, *it);
     int position = -1;
     std::string channel_name;
     if (it->find('#') != std::string::npos)
         position = it->find('#');
-    *it = *it + "\r\n";
     channel_name.assign(it->begin() + position, it->end());
+    create_channel(it_cli->socket, it_cli, *it, channel_name);
+    *it = *it + "\r\n";
     std::list<clients>::iterator to_send = this->_user_data.begin(); 
     *it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + *it;
-    for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
+    for(std::list<channel>::iterator to_send = this->_channel_data.begin(); to_send != this->_channel_data.end(); to_send++)
     {
-        if (channel_name.empty() == false)
+        if (channel_name == to_send->name)
         {
-            std::cout << "cmd = |" << *it << "|\n";
-            if (it_cli->channel == to_send->channel){
-                send(to_send->socket, it->c_str() , it->size(), 0);
+            std::cout << "priv msg channel = |" << *it << "|\n";
+            for (std::list<int>::iterator socket_in_channel = to_send->client_socket.begin(); socket_in_channel != to_send->client_socket.end(); socket_in_channel++){
+                if (it_cli->socket != *socket_in_channel)
+                    send(*socket_in_channel, it->c_str() , it->size(), 0);
             }
         }
     }
@@ -306,7 +306,7 @@ void Server::commandPRIVMSG( std::list<clients>::iterator it_cli, std::vector<st
             std::cout << "a envoyer " << *socket_in_channel << std::endl;
         }
             for (std::list<int>::iterator socket_in_channel = to_send->client_socket.begin(); socket_in_channel != to_send->client_socket.end(); socket_in_channel++){
-                if (it_cli->socket != *socket_in_channel && it_cli->channel == channel_name)
+                if (it_cli->socket != *socket_in_channel)
                     send(*socket_in_channel, it->c_str() , it->size(), 0);
             }
         }

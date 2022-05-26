@@ -38,7 +38,7 @@ typedef struct clients{
 	std::string username;
 	std::string password;
 	std::string name;
-	std::string channel;
+	std::list<std::string> channel;
 	std::string host;
 }clients;
 
@@ -76,7 +76,7 @@ class Server{
 		void commandNICK( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
 		void commandPRIVMSG( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
 		void commandPART(std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it);
-		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg);
+		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg, std::string channel_name);
 		void delete_clrf(std::string temp);
 		void what_cmd(std::list<clients>::iterator it_cli);
 		std::string cut_word_space( std::string to_cut, std::string::iterator it );
