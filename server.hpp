@@ -45,6 +45,7 @@ typedef struct clients{
 typedef struct channel{
 	int nb_client;
 	std::string name;
+	std::list<int> client_socket;
 }channel;
 
 class Server{
@@ -67,11 +68,14 @@ class Server{
 		void display_fds();
 		void setup_username( std::string nickname, std::list<clients>::iterator it_cli, int first);
 		void setup_password( std::string password, std::list<clients>::iterator it_cli);
-		void commandPART(std::list<clients>::iterator it_cli);
 		void setup_host( std::string host, std::list<clients>::iterator it_cli );
 		void user_left( std::list<pollfd>::iterator it );
-		bool channel_open(std::string channel_name);
+		bool channel_open(std::string channel_name, int user);
 		void channel_empty(std::string channel_name);
+		void commandJOIN( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
+		void commandNICK( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
+		void commandPRIVMSG( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
+		void commandPART(std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it);
 		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg);
 		void delete_clrf(std::string temp);
 		void what_cmd(std::list<clients>::iterator it_cli);
@@ -79,8 +83,6 @@ class Server{
 		int _clients;
 		int _serverSocket;
 
-		std::string _wlcmsg = ":127.0.0.1 375 user42 ::- 127.0.0.1 Message of the day -\r\n";
-		std::string _wlcmsg2 = ":127.0.0.1 376 user42 ::End of /MOTD command\r\n";
 		std::list<pollfd> _lfds;
 		std::list<clients> _user_data;
 		std::list<channel> _channel_data;
