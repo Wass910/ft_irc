@@ -22,8 +22,6 @@
 #include <vector>
 #include <list>
 
-# define JOIN 1
-# define QUIT 2
 
 typedef struct User{
     int     len;
@@ -75,7 +73,11 @@ class Server{
 		void commandJOIN( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
 		void commandNICK( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
 		void commandPRIVMSG( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
+		void commandPRIVMSG_user( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
+		void commandPRIVMSG_channel( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it, std::string channel_name );
 		void commandPART(std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it);
+		void delete_channel(std::list<clients>::iterator it_cli, std::string channel_name);
+		bool is_in_the_channel(std::list<std::string> channel, std::string channel_name);
 		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg, std::string channel_name);
 		void delete_clrf(std::string temp);
 		void what_cmd(std::list<clients>::iterator it_cli);

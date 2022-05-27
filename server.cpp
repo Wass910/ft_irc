@@ -218,38 +218,47 @@ std::string Server::cut_word_space( std::string to_cut, std::string::iterator it
     return after_cut;
 }
 
+void Server::delete_channel(std::list<clients>::iterator it_cli, std::string channel_name)
+{
+    std::list<std::string>::iterator it = it_cli->channel.begin();
+    while (it != it_cli->channel.end()){
+        if (*it == channel_name){
+            it->clear();
+            it_cli->channel.erase(it);
+            return ;
+        }
+        it++;
+    }
+    return ;
+}
+
 void Server::commandPART(std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it)
 {
     int position = -1;
     std::list<int>::iterator to_del;
     if (it->find('#') != std::string::npos)
         position = it->find('#');
+    else if (it->find('&') != std::string::npos)
+        position = it->find('&');
     std::string channel_name;
     if (position != -1)
         channel_name.assign(it->begin() + position, it->end());
-    std::cout << "channel = |" << channel_name << "|\n";
-    *it = *it + "\r\n";
-    *it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + *it;
+    *it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + *it + "\r\n";
     for(std::list<channel>::iterator to_send = this->_channel_data.begin(); to_send != this->_channel_data.end(); to_send++)
     {
         if (channel_name == to_send->name)
         {
-
-            for (std::list<int>::iterator socket_in_channel = to_send->client_socket.begin(); socket_in_channel != to_send->client_socket.end(); socket_in_channel++){
-                std::cout << "socket in the channel " << *socket_in_channel << std::endl;
-            }
             std::cout << "priv msg channel = |" << *it << "|\n";
             for (std::list<int>::iterator socket_in_channel = to_send->client_socket.begin(); socket_in_channel != to_send->client_socket.end(); socket_in_channel++){
-                if (it_cli->socket == *socket_in_channel ){
+                if (it_cli->socket == *socket_in_channel )
                     to_del = socket_in_channel;
-                    std::cout << "a supp " << *to_del << std::endl;}
                 else
                     send(*socket_in_channel, it->c_str() , it->size(), 0);
             }
             to_send->client_socket.erase(to_del);
         }
-        }
-    it_cli->channel.clear();
+    }
+    delete_channel(it_cli, channel_name);
     return ;
 }
 
@@ -259,11 +268,11 @@ void Server::commandJOIN( std::list<clients>::iterator it_cli, std::vector<std::
     std::string channel_name;
     if (it->find('#') != std::string::npos)
         position = it->find('#');
+    else if (it->find('&') != std::string::npos)
+        position = it->find('&');
     channel_name.assign(it->begin() + position, it->end());
     create_channel(it_cli->socket, it_cli, *it, channel_name);
-    *it = *it + "\r\n";
-    std::list<clients>::iterator to_send = this->_user_data.begin(); 
-    *it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + *it;
+    *it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + *it + "\r\n";
     for(std::list<channel>::iterator to_send = this->_channel_data.begin(); to_send != this->_channel_data.end(); to_send++)
     {
         if (channel_name == to_send->name)
@@ -285,17 +294,17 @@ void Server::commandNICK( std::list<clients>::iterator it_cli, std::vector<std::
     send(it_cli->socket, output.c_str() , output.size(), 0);
 }
 
-void Server::commandPRIVMSG( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it )
+bool Server::is_in_the_channel(std::list<std::string> channel, std::string channel_name)
 {
-    int position = -1;
-    std::string channel_name;
-    std::string user_to_send;
-    if (it->find('#') != std::string::npos)
-        position = it->find('#');
-    *it = *it + "\r\n";
-    if (position != -1)
-        channel_name = cut_word_space(*it, it->begin() + position);
-    if (channel_name.empty() == false){
+    for (std::list<std::string>::iterator it = channel.begin(); it != channel.end(); it++){
+        if (*it == channel_name)
+            return true;
+    }
+    return false;
+}
+
+void Server::commandPRIVMSG_channel( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it, std::string channel_name )
+{
     *it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + *it;
     for(std::list<channel>::iterator to_send = this->_channel_data.begin(); to_send != this->_channel_data.end(); to_send++)
     {
@@ -303,29 +312,41 @@ void Server::commandPRIVMSG( std::list<clients>::iterator it_cli, std::vector<st
         {
             std::cout << "priv msg channel = |" << *it << "|\n";
             for (std::list<int>::iterator socket_in_channel = to_send->client_socket.begin(); socket_in_channel != to_send->client_socket.end(); socket_in_channel++){
-            std::cout << "a envoyer " << *socket_in_channel << std::endl;
-        }
-            for (std::list<int>::iterator socket_in_channel = to_send->client_socket.begin(); socket_in_channel != to_send->client_socket.end(); socket_in_channel++){
-                if (it_cli->socket != *socket_in_channel)
+                if (it_cli->socket != *socket_in_channel && is_in_the_channel(it_cli->channel, channel_name) == true)
                     send(*socket_in_channel, it->c_str() , it->size(), 0);
             }
         }
     }
-    }
-    else {
-        position = it->find(' ');
-        user_to_send = cut_word_space(*it, it->begin() + 8);
-        std::cout << "user = |" << user_to_send << "|\n";
-        *it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + *it;
-        for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
-        {
-            std::cout << "cmd = |" << *it << "|\n";
-            if (user_to_send == to_send->username){
-                send(to_send->socket, it->c_str() , it->size(), 0);
-                break ;
-            }
+    return;
+}
+
+void Server::commandPRIVMSG_user( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it )
+{
+    std::string user_to_send = cut_word_space(*it, it->begin() + 8);
+    *it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + *it;
+    for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
+    {
+        std::cout << "cmd = |" << *it << "|\n";
+        if (user_to_send == to_send->username){
+            send(to_send->socket, it->c_str() , it->size(), 0);
+            break ;
         }
     }
+    return ;
+}
+
+void Server::commandPRIVMSG( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it )
+{
+    int position = -1;
+    if (it->find('#') != std::string::npos)
+        position = it->find('#');
+    else if (it->find('&') != std::string::npos)
+        position = it->find('&');
+    *it = *it + "\r\n";
+    if (position != -1)
+        commandPRIVMSG_channel(it_cli, it, cut_word_space(*it, it->begin() + position));
+    else 
+        commandPRIVMSG_user(it_cli, it);
 }
 
 void Server::what_cmd(std::list<clients>::iterator it_cli)
