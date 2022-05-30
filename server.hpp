@@ -22,6 +22,8 @@
 #include <vector>
 #include <list>
 
+# define JOIN 1
+# define QUIT 2
 
 typedef struct User{
     int     len;
@@ -44,7 +46,15 @@ typedef struct channel{
 	int nb_client;
 	std::string name;
 	std::list<int> client_socket;
+	std::list<std::string> username;
 }channel;
+
+typedef struct msg{
+	std::string cmd;
+	std::string prefix;
+	std::string args;
+	std::string *result[3] = { &prefix, &cmd, &args };
+} msg;
 
 class Server{
 	public:
@@ -61,8 +71,17 @@ class Server{
 	private:
 		struct pollfd _fds[100];
 		struct sockaddr_in _addrServer;
+		struct msg _msg;
 
+		int (Server::*options_ft[4])(struct msg, std::list<pollfd>::iterator, std::list<clients>::iterator) = { &Server::no_arg, &Server::one_arg, &Server::multiple_args };
+		int parser(std::string cmd, std::list<pollfd>::iterator it, std::list<clients>::iterator it_cli);
+		void global_parsing(std::string s, std::list<pollfd>::iterator it, std::list<clients>::iterator it_cli);
+		int choose_option(std::string cmd);
+		int no_arg(struct msg msg, std::list<pollfd>::iterator it, std::list<clients>::iterator it_cli );
+		int one_arg(struct msg msg, std::list<pollfd>::iterator it, std::list<clients>::iterator it_cli );
+		int multiple_args(struct msg msg, std::list<pollfd>::iterator it, std::list<clients>::iterator it_cli );
 		void build_fds();
+		std::string username_with_socket(int socket);
 		void display_fds();
 		void setup_username( std::string nickname, std::list<clients>::iterator it_cli, int first);
 		void setup_password( std::string password, std::list<clients>::iterator it_cli);
@@ -70,25 +89,31 @@ class Server{
 		void user_left( std::list<pollfd>::iterator it );
 		bool channel_open(std::string channel_name, int user);
 		void channel_empty(std::string channel_name);
-		void commandJOIN( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
-		void commandNICK( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
-		void commandPRIVMSG( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
-		void commandPRIVMSG_user( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it );
-		void commandPRIVMSG_channel( std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it, std::string channel_name );
-		void commandPART(std::list<clients>::iterator it_cli, std::vector<std::string>::iterator it);
+		void commandJOIN( std::list<clients>::iterator it_cli, std::string it );
+		void commandNICK( std::list<clients>::iterator it_cli, std::string it );
+		void commandPRIVMSG( std::list<clients>::iterator it_cli, std::string message );
+		void commandPRIVMSG_user( std::list<clients>::iterator it_cli, std::string it );
+		void commandPRIVMSG_channel( std::list<clients>::iterator it_cli, std::string message );
+		void commandPART(std::list<clients>::iterator it_cli, std::string it);
+		void commandNAME(  std::string cmd , std::list<clients>::iterator it_cli, int first);
+		void commandLIST(  std::string cmd , std::list<clients>::iterator it_cli, int first);
+		void commandQUIT(  std::string cmd , std::list<clients>::iterator it_cli, std::list<pollfd>::iterator it);
 		void delete_channel(std::list<clients>::iterator it_cli, std::string channel_name);
 		bool is_in_the_channel(std::list<std::string> channel, std::string channel_name);
-		void create_channel(int user, std::list<clients>::iterator it_cli, std::string msg, std::string channel_name);
+		bool is_in_channel(std::string channel, std::list<std::string> channel_list);
+		void create_channel(int user, std::list<clients>::iterator it_cli, std::string channel_name);
 		void delete_clrf(std::string temp);
-		void what_cmd(std::list<clients>::iterator it_cli);
 		std::string cut_word_space( std::string to_cut, std::string::iterator it );
 		int _clients;
 		int _serverSocket;
 
+		std::string _wlcmsg = ":127.0.0.1 375 user42 ::- 127.0.0.1 Message of the day -\r\n";
+		std::string _wlcmsg2 = ":127.0.0.1 376 user42 ::End of /MOTD command\r\n";
 		std::list<pollfd> _lfds;
 		std::list<clients> _user_data;
 		std::list<channel> _channel_data;
 		std::vector<std::string> cmd;
+	
 };
 
 #endif //SERVER_H
