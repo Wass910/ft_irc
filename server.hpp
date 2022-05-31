@@ -59,7 +59,7 @@ typedef struct msg{
 class Server{
 	public:
 		Server();
-		Server( int port);
+		Server( int port, std::string password );
 		~Server();
 
 		void addUser();
@@ -95,8 +95,8 @@ class Server{
 		void commandPRIVMSG_user( std::list<clients>::iterator it_cli, std::string it );
 		void commandPRIVMSG_channel( std::list<clients>::iterator it_cli, std::string message );
 		void commandPART(std::list<clients>::iterator it_cli, std::string it);
-		void commandNAME(  std::string cmd , std::list<clients>::iterator it_cli, int first);
-		void commandLIST(  std::string cmd , std::list<clients>::iterator it_cli, int first);
+		void commandNAME(  std::list<clients>::iterator it_cli );
+		void commandLIST(  std::string cmd, std::list<clients>::iterator it_cli );
 		void commandQUIT(  std::string cmd , std::list<clients>::iterator it_cli, std::list<pollfd>::iterator it);
 		void commandNOTICE( std::list<clients>::iterator it_cli, std::string it );
 		void delete_channel(std::list<clients>::iterator it_cli, std::string channel_name);
@@ -114,6 +114,7 @@ class Server{
 		std::list<clients> _user_data;
 		std::list<channel> _channel_data;
 		std::vector<std::string> cmd;
+		std::string _passwd;
 	
 };
 
