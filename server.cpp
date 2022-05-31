@@ -304,6 +304,8 @@ void Server::commandPRIVMSG_channel( std::list<clients>::iterator it_cli, std::s
 {
 	int pos;
 	std::string channel_name;
+    int valide = 0;
+    std::string user_not_found;
 	if ((pos = message.find(" ")) != std::string::npos) {
 		channel_name = message.substr(0, pos);
 	}
@@ -312,6 +314,7 @@ void Server::commandPRIVMSG_channel( std::list<clients>::iterator it_cli, std::s
     {
         if (channel_name == to_send->name)
         {
+            valide++;
             std::cout << "priv msg channel = |" << message << "|\n";
             for (std::list<int>::iterator socket_in_channel = to_send->client_socket.begin(); socket_in_channel != to_send->client_socket.end(); socket_in_channel++){
                 if (it_cli->socket != *socket_in_channel && is_in_the_channel(it_cli->channel, channel_name) == true)
@@ -319,12 +322,19 @@ void Server::commandPRIVMSG_channel( std::list<clients>::iterator it_cli, std::s
             }
         }
     }
+    if (valide == 0)
+    {
+        user_not_found = ":127.0.0.1 401 " + it_cli->username + " :" + channel_name + " \r\n";
+        send(it_cli->socket, user_not_found.c_str() , user_not_found.size(), 0);
+    }
     return;
 }
 
 void Server::commandPRIVMSG_user( std::list<clients>::iterator it_cli, std::string it )
 {
 	int pos;
+    int valide = 0;
+    std::string user_not_found;
 	std::string user_to_send;
 	if ((pos = it.find(" ")) != std::string::npos) {
 		user_to_send = it.substr(0, pos);
@@ -334,9 +344,17 @@ void Server::commandPRIVMSG_user( std::list<clients>::iterator it_cli, std::stri
     {
         std::cout << "cmd = |" << it << "|\n";
         if (user_to_send == to_send->username){
+            std::cout << "to send  boucle = " << user_to_send << " username = " << to_send->username << std::endl;
             send(to_send->socket, it.c_str() , it.size(), 0);
+            valide++;
             break ;
         }
+        std::cout << "to send  = " << user_to_send << " username = " << to_send->username << std::endl;
+    }
+    if (valide == 0)
+    {
+        user_not_found = ":127.0.0.1 401 " + it_cli->username + " :" + user_to_send + " \r\n";
+        send(it_cli->socket, user_not_found.c_str() , user_not_found.size(), 0);
     }
     return ;
 }
@@ -348,6 +366,26 @@ void Server::commandPRIVMSG( std::list<clients>::iterator it_cli, std::string me
         commandPRIVMSG_channel(it_cli, message);
     else 
         commandPRIVMSG_user(it_cli, message);
+}
+
+void Server::commandNOTICE( std::list<clients>::iterator it_cli, std::string it )
+{
+    it = it + "\r\n";
+    int pos;
+	std::string user_to_send;
+	user_to_send = cut_word_space(it, it.begin() + 7);
+    it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + it;
+    for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
+    {
+        std::cout << "cmd = |" << it << "|\n";
+        if (user_to_send == to_send->username){
+            std::cout << "to send  boucle = " << user_to_send << " username = " << to_send->username << std::endl;
+            send(to_send->socket, it.c_str() , it.size(), 0);
+            break ;
+        }
+        std::cout << "to send  = " << user_to_send << " username = " << to_send->username << std::endl;
+    }
+    return ;
 }
 
 std::string Server::username_with_socket(int socket)
@@ -455,6 +493,7 @@ void Server::servListen(std::list<pollfd>::iterator it)
             rec_char[i] ^= rec_char[i];
         }
         rec = recv(it->fd, &rec_char ,sizeof(rec_char), 0);
+        std::cout << "RRRREEEEEEEEEEEEEEEEEEEEEECCC = " << rec << std::endl;
         temp.assign(rec_char);
         delete_clrf(temp);
         //ici le vector est setup
@@ -473,6 +512,9 @@ void Server::servListen(std::list<pollfd>::iterator it)
 			}
             else if(it_cmd->find("LIST") != std::string::npos){
 				commandLIST(*it_cmd, it_cli, it_cmd->find("LIST "));
+			}
+            else if(it_cmd->find("NOTICE") != std::string::npos){
+				commandNOTICE(it_cli, *it_cmd);
 			}
             else if(it_cmd->find("QUIT") != std::string::npos){
 				commandQUIT(*it_cmd, it_cli, it);
