@@ -208,18 +208,6 @@ void Server::setup_host( std::string host, std::list<clients>::iterator it_cli )
     return ;
 }
 
-std::string Server::cut_word_space( std::string to_cut, std::string::iterator it )
-{
-    std::string after_cut;
-    std::string::iterator it_space = it;
-    while (*it_space != ' ')
-        it_space++;
-    
-    after_cut.assign(it, it_space);
-    std::cout << "after = |" << after_cut << "|\n";
-    return after_cut;
-}
-
 void Server::delete_channel(std::list<clients>::iterator it_cli, std::string channel_name)
 {
     std::list<std::string>::iterator it = it_cli->channel.begin();
@@ -491,6 +479,46 @@ void Server::commandMODE( std::list<clients>::iterator it_cli, std::string args)
 	return ;
 }
 
+std::string Server::cut_word_space( std::string to_cut, std::string::iterator it )
+{
+    std::string after_cut;
+    std::string::iterator it_space = it;
+    while (*it_space != ' ')
+        it_space++;
+    
+    after_cut.assign(it, it_space);
+    std::cout << "after = |" << after_cut << "|\n";
+    return after_cut;
+}
+
+void Server::commandKICK(  std::string cmd , std::list<clients>::iterator it_cli )
+{
+    if (this->_channel_data.size() == 0)
+        return ;
+    std::string user_name;
+    std::string user_temp;
+    std::string channel_name;
+    int to_cut;
+    to_cut = cmd.find(' ');
+    to_cut++;
+    channel_name = cut_word_space(cmd, cmd.begin() + to_cut);
+    user_temp.assign(cmd.begin()+ to_cut, cmd.end());
+    to_cut = user_temp.find(' ');
+    to_cut++;
+    user_name = cut_word_space(cmd, user_temp.begin() + to_cut);
+    cmd = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + cmd + "\r\n";
+    for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
+    {
+        if (to_send->username == user_name)
+        {
+            std::cout << "priv msg channel = |" << cmd << "|\n";
+            send(to_send->socket, cmd.c_str() , cmd.size(), 0);
+            commandPART(to_send, channel_name);
+        }
+    }
+
+}
+
 void Server::servListen(std::list<pollfd>::iterator it) 
 {
     char rec_char[500];
@@ -515,6 +543,9 @@ void Server::servListen(std::list<pollfd>::iterator it)
 		while(it_cmd != this->cmd.end()){
 			if(it_cmd->find("USER") != std::string::npos){
 				setup_host(*it_cmd, it_cli);
+			}
+            else if(it_cmd->find("KICK") != std::string::npos){
+				commandKICK(*it_cmd, it_cli);
 			}
             else
 			    parser(*it_cmd, it, it_cli);

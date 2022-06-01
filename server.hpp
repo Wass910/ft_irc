@@ -14,7 +14,6 @@
 #include <cctype>
 #include <string>
 #include <vector>
-#include <thread>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -101,6 +100,7 @@ class Server{
 		void commandQUIT(  std::string cmd , std::list<clients>::iterator it_cli, std::list<pollfd>::iterator it);
 		void commandNOTICE( std::list<clients>::iterator it_cli, std::string it );
 		void commandMODE( std::list<clients>::iterator it_cli, std::string args);
+		void commandKICK(  std::string cmd , std::list<clients>::iterator it_cli );
 		void delete_channel(std::list<clients>::iterator it_cli, std::string channel_name);
 		bool is_in_the_channel(std::list<std::string> channel, std::string channel_name);
 		bool is_in_channel(std::string channel, std::list<std::string> channel_list);
@@ -110,8 +110,6 @@ class Server{
 		int _clients;
 		int _serverSocket;
 
-		std::string _wlcmsg = ":127.0.0.1 375 user42 ::- 127.0.0.1 Message of the day -\r\n";
-		std::string _wlcmsg2 = ":127.0.0.1 376 user42 ::End of /MOTD command\r\n";
 		std::list<pollfd> _lfds;
 		std::list<clients> _user_data;
 		std::list<channel> _channel_data;
