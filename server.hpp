@@ -99,7 +99,8 @@ class Server{
 		void commandLIST(  std::string cmd, std::list<clients>::iterator it_cli );
 		void commandQUIT(  std::string cmd , std::list<clients>::iterator it_cli, std::list<pollfd>::iterator it);
 		void commandNOTICE( std::list<clients>::iterator it_cli, std::string it );
-		void commandMODE( std::list<clients>::iterator it_cli, std::string args);
+		void commandMODE( std::list<clients>::iterator it_cli, std::string username, std::string mode, int sender);
+		void commandOPER( std::list<clients>::iterator it_cli, std::string username, std::string password);
 		void commandKICK(  std::string cmd , std::list<clients>::iterator it_cli );
 		void delete_channel(std::list<clients>::iterator it_cli, std::string channel_name);
 		bool is_in_the_channel(std::list<std::string> channel, std::string channel_name);
@@ -115,6 +116,7 @@ class Server{
 		std::list<channel> _channel_data;
 		std::vector<std::string> cmd;
 		std::string _passwd;
+		std::string _operpasswd;
 	
 };
 
