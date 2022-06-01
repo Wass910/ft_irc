@@ -262,6 +262,10 @@ void Server::commandJOIN( std::list<clients>::iterator it_cli, std::string it )
     {
         if (channel_name == to_send->name)
         {
+            if (to_send->client_socket.size() == 9)
+            {
+                return ;
+            }
             std::cout << "priv msg channel = |" << it << "|\n";
             for (std::list<int>::iterator socket_in_channel = to_send->client_socket.begin(); socket_in_channel != to_send->client_socket.end(); socket_in_channel++){
                     if (it_cli->socket != *socket_in_channel)

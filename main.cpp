@@ -9,7 +9,7 @@ void	inthandler(int sig)
 {
 	std::cout << "Server is close !\n";
 	close(port);
-	test = 1;
+	kill_server = 1;
 }
 
 int main(int argc, char **argv)
