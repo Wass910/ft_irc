@@ -53,7 +53,7 @@ typedef struct msg{
 	std::string cmd;
 	std::string prefix;
 	std::string args;
-	std::string *result[3] = { &prefix, &cmd, &args };
+	std::string *result[3];
 } msg;
 
 class Server{
@@ -73,7 +73,6 @@ class Server{
 		struct sockaddr_in _addrServer;
 		struct msg _msg;
 
-		int (Server::*options_ft[4])(struct msg, std::list<pollfd>::iterator, std::list<clients>::iterator) = { &Server::no_arg, &Server::one_arg, &Server::multiple_args };
 		int parser(std::string cmd, std::list<pollfd>::iterator it, std::list<clients>::iterator it_cli);
 		void global_parsing(std::string s, std::list<pollfd>::iterator it, std::list<clients>::iterator it_cli);
 		int choose_option(std::string cmd);
@@ -108,8 +107,6 @@ class Server{
 		int _clients;
 		int _serverSocket;
 
-		std::string _wlcmsg = ":127.0.0.1 375 user42 ::- 127.0.0.1 Message of the day -\r\n";
-		std::string _wlcmsg2 = ":127.0.0.1 376 user42 ::End of /MOTD command\r\n";
 		std::list<pollfd> _lfds;
 		std::list<clients> _user_data;
 		std::list<channel> _channel_data;
