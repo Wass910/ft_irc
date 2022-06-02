@@ -84,7 +84,7 @@ class Server{
 		void build_fds();
 		std::string username_with_socket(int socket);
 		void display_fds();
-		void setup_username( std::string nickname, std::list<clients>::iterator it_cli, int first);
+		void setup_username( std::string nickname, std::list<clients>::iterator it_cli);
 		void setup_password( std::string password, std::list<clients>::iterator it_cli);
 		void setup_host( std::string host, std::list<clients>::iterator it_cli );
 		void user_left( std::list<pollfd>::iterator it );
@@ -109,7 +109,7 @@ class Server{
 		void create_channel(int user, std::list<clients>::iterator it_cli, std::string channel_name);
 		void delete_clrf(std::string temp);
 		void wlcm_msg(std::list<clients>::iterator it_cli);
-		std::string cut_word_space( std::string to_cut, std::string::iterator it );
+		std::string cut_word_space( std::string::iterator it );
 		int _clients;
 		int _serverSocket;
 
@@ -120,7 +120,6 @@ class Server{
 		std::string _passwd;
 		std::string _operpasswd;
 		std::string _concatenate;
-		int check;
 	
 };
 

@@ -1,4 +1,4 @@
-#include "server.hpp"
+#include "../inc/server.hpp"
 
 Server::Server(void) {
 	return ;
@@ -13,9 +13,9 @@ Server::Server( int port, std::string password ) : _clients(0), _passwd(password
     struct pollfd lserver;
 
 	bind(this->_serverSocket, (const struct sockaddr *)&this->_addrServer, sizeof(this->_addrServer));
-    std::cout << "bind : " << this->_serverSocket << std::endl;
+    std::cout << "\033[1;36mbind : " << this->_serverSocket << "\033[0m" << std::endl;
     listen(this->_serverSocket, 5);
-    std::cout << "listening at : " << ntohs(this->_addrServer.sin_port) << std::endl;
+    std::cout << "\033[1;36mlistening at : " << ntohs(this->_addrServer.sin_port) << "\033[0m" << std::endl;
 	lserver.fd = this->_serverSocket;
 	lserver.events = POLLIN;
     this->_lfds.push_back(lserver);
@@ -45,7 +45,7 @@ void Server::addUser()
 	this->_clients == 0 ? new_cli.oper = 1 : new_cli.oper = 0;
 	new_cli.invisible = 0;
 	new_cli.connected = 0;
-    std::cout << "USER[" << new_cli.socket << "]->[" << inet_ntoa(new_cli.addrClient.sin_addr) <<"] connected." << std::endl;
+    std::cout << "\033[1;32mUSER[" << new_cli.socket << "]->[" << inet_ntoa(new_cli.addrClient.sin_addr) <<"] connected.\033[0m" << std::endl;
 	new_fd.fd = new_cli.socket;
 	new_fd.events = POLLIN;
 	this->_clients++;
@@ -78,7 +78,7 @@ void Server::channel_empty(std::string channel_name)
     if (it != ite){
         it->nb_client--;
         if (it->nb_client == 0){
-            std::cout << "channel " <<  channel_name << " is close \n";
+            std::cout << "\033[1;31mchannel " <<  channel_name << " has been closed.\033[0m" << std::endl;
             this->_channel_data.erase(it);
         }
     }
@@ -89,7 +89,7 @@ void Server::create_channel(int user, std::list<clients>::iterator it_cli, std::
 {
     it_cli->channel.push_back(channel_name);
     if (this->_channel_data.size() == 0){
-        std::cout << "channel " << channel_name << " creer\n";
+        std::cout << "\033[1;32mchannel " << channel_name << " created.\033[0m" << std::endl;
         channel channel;
         channel.name = channel_name;
         channel.nb_client = 1;
@@ -98,7 +98,7 @@ void Server::create_channel(int user, std::list<clients>::iterator it_cli, std::
     }
     else {
         if (channel_open(channel_name, user) == false){
-            std::cout << "channel " << channel_name << " existe\n";
+            std::cout << "\033[1;37mchannel " << channel_name << " already exists.\033[0m" << std::endl;
             channel channel;
             channel.name = channel_name;
             channel.nb_client = 1;
@@ -113,7 +113,31 @@ void Server::user_left(std::list<pollfd>::iterator it)
     std::list<clients>::iterator it_cli = this->_user_data.begin();   
     while (it_cli->socket != it->fd)
         it_cli++;
-    std::cout << "USER[" << it->fd << "] disconnected." << std::endl;
+    std::cout << "\033[1;31mUSER[" << it->fd << "] disconnected.\033[0m" << std::endl;
+    if(it_cli->oper == 1 && this->_user_data.size() > 1){
+		std::list<clients>::iterator next = this->_user_data.begin();
+		while(next != this->_user_data.end()){
+			if(next == it_cli)
+				next++;
+			if(next->oper == 1)
+				break;
+			next++;
+		}
+		if(next == this->_user_data.end()){
+		next = this->_user_data.begin();
+		while(next != it_cli && next != this->_user_data.end())
+			next++;
+		next++;
+		if(next != this->_user_data.end())
+			next->oper = 1;
+		else{
+			next--;
+			if(next != this->_user_data.begin()){
+				next--;
+				next->oper = 1;
+			}
+		}}
+	}
     close(it->fd);
     this->_clients--;
     std::list<pollfd>::iterator beg = this->_lfds.begin();
@@ -125,7 +149,7 @@ void Server::user_left(std::list<pollfd>::iterator it)
     return ;
 }
 
-void Server::setup_username( std::string username, std::list<clients>::iterator it_cli, int first )
+void Server::setup_username( std::string username, std::list<clients>::iterator it_cli)
 {
     for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
     {
@@ -179,7 +203,7 @@ void Server::setup_host( std::string host, std::list<clients>::iterator it_cli )
     return ;
 }
 
-std::string Server::cut_word_space( std::string to_cut, std::string::iterator it )
+std::string Server::cut_word_space( std::string::iterator it )
 {
     std::string after_cut;
     std::string::iterator it_space = it;
@@ -259,7 +283,6 @@ void Server::commandJOIN( std::list<clients>::iterator it_cli, std::string it )
                     //channel_count.clear();
                     send(*socket_in_channel, it.c_str() , it.size(), 0);
                 }
-				std::cout << "socket_in_channel" <<  *socket_in_channel << std::endl;
             }
             break ;
         }
@@ -275,7 +298,7 @@ void Server::commandJOIN( std::list<clients>::iterator it_cli, std::string it )
 void Server::commandNICK( std::list<clients>::iterator it_cli, std::string it )
 {
     std::string old_username = it_cli->username;
-    setup_username(it, it_cli, it.find("NICK", 0, 5));
+    setup_username(it, it_cli);
     std::string output = ":" + old_username + " NICK " + it_cli->username + "\r\n";
     send(it_cli->socket, output.c_str() , output.size(), 0);
 }
@@ -286,7 +309,7 @@ void Server::commandPRIVMSG_channel( std::list<clients>::iterator it_cli, std::s
 	std::string channel_name;
 	int valide = 0;
     std::string user_not_found;
-	if ((pos = message.find(" ")) != std::string::npos) {
+	if ((pos = message.find(" ")) != (int)std::string::npos) {
 		channel_name = message.substr(0, pos);
 	}
     message = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " PRIVMSG " + message;
@@ -315,7 +338,7 @@ void Server::commandPRIVMSG_user( std::list<clients>::iterator it_cli, std::stri
 	int valide = 0;
     std::string user_not_found;
 	std::string user_to_send;
-	if ((pos = it.find(" ")) != std::string::npos)
+	if ((pos = it.find(" ")) != (int)std::string::npos)
 		user_to_send = it.substr(0, pos);
     it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " PRIVMSG " + it;
     for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
@@ -346,9 +369,8 @@ void Server::commandPRIVMSG( std::list<clients>::iterator it_cli, std::string me
 void Server::commandNOTICE( std::list<clients>::iterator it_cli, std::string it )
 {
     it = it + "\r\n";
-    int pos;
 	std::string user_to_send;
-	user_to_send = cut_word_space(it, it.begin() + 7);
+	user_to_send = cut_word_space(it.begin() + 7);
     it = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + it;
     for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
     {
@@ -370,7 +392,7 @@ void Server::commandKICK(  std::string cmd , std::list<clients>::iterator it_cli
     int to_cut;
     to_cut = cmd.find(' ');
     to_cut++;
-    channel_name = cut_word_space(cmd, cmd.begin() + to_cut);
+    channel_name = cut_word_space(cmd.begin() + to_cut);
     if (it_cli->oper == false){
         std::string not_oper = ":127.0.0.1 442 "  + channel_name +  " ::You are not an operator\r\n";
         send(it_cli->socket, not_oper.c_str() , not_oper.size(), 0);
@@ -384,7 +406,7 @@ void Server::commandKICK(  std::string cmd , std::list<clients>::iterator it_cli
     user_temp.assign(cmd.begin()+ to_cut, cmd.end());
     to_cut = user_temp.find(' ');
     to_cut++;
-    user_name = cut_word_space(cmd, user_temp.begin() + to_cut);
+    user_name = cut_word_space(user_temp.begin() + to_cut);
     cmd = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + cmd + "\r\n";
     for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
     {
@@ -466,7 +488,7 @@ bool Server::is_in_channel(std::string channel, std::list<std::string> channel_l
 
 void Server::commandQUIT( std::string cmd , std::list<clients>::iterator it_cli, std::list<pollfd>::iterator it)
 {
-    std::cout << "USER[" << it->fd << "] disconnected." << std::endl;
+    std::cout << "\033[1;31mUSER[" << it->fd << "] disconnected.\033[0m" << std::endl;
     cmd = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + cmd + "\r\n";
     for(std::list<channel>::iterator to_send = this->_channel_data.begin(); to_send != this->_channel_data.end(); to_send++)
     {
@@ -529,7 +551,6 @@ void Server::commandMODE( std::list<clients>::iterator it_cli, std::string usern
 }
 
 void Server::commandOPER( std::list<clients>::iterator it_cli, std::string username, std::string password){
-	std::cout << password << this->_operpasswd << std::endl;
 	if(password == this->_operpasswd){
 		commandMODE( it_cli, username, "+o", 1);
 	}
@@ -553,7 +574,6 @@ void Server::delete_clrf(std::string temp)
     std::string::iterator position = temp.begin();
 
     if(temp.find("\r") == std::string::npos){
-        std::cout << "TEEEEEEEEEEEEEMP = |" << temp << "|\n";
         this->_concatenate += temp;
         return ;
     }
@@ -566,10 +586,8 @@ void Server::delete_clrf(std::string temp)
             if (this->_concatenate.size() != 0)
             {   
                 first.clear();
-                std::cout << "test = |" << this->_concatenate << "|\n"; 
                 first = this->_concatenate + temp_clrf;
             }
-            std::cout << "FIRST  = |" << first << "|\n"; 
             this->cmd.push_back(first);
             first.clear();
             position = it;
@@ -600,16 +618,14 @@ void Server::servListen(std::list<pollfd>::iterator it)
         }
         temp.assign(rec_char);
         delete_clrf(temp);
-        std::cout << "cmd = |" << temp << "|\n";
         it_cmd = this->cmd.begin();
-        std::cout << "it = |" << *it_cmd << "|\n";
 		if(it_cmd == this->cmd.end())
 			return ;
         std::list<clients>::iterator it_cli = this->_user_data.begin();
 		while (it_cli->socket != it->fd)
             it_cli++;
 		while(it_cmd != this->cmd.end() && it_cli->connected < 3){
-			std::cout << it_cli->connected << std::endl;
+			std::cout << "\033[1;33m    connection status: " << it_cli->connected << "\033[0m" << std::endl;
 			if(it_cmd->find("NICK") != std::string::npos && it_cli->connected == 1){
 				parser(*it_cmd, it, it_cli);
 				it_cli->connected++;
@@ -672,7 +688,7 @@ void Server::build_fds(void)
 void Server::update_revents( void ) 
 {
     std::list<pollfd>::iterator it = this->_lfds.begin();
-    for(int i = 0; i < this->_lfds.size(); i++) 
+    for(unsigned int i = 0; i < this->_lfds.size(); i++) 
     {
         it->revents = this->_fds[i].revents;
         it->events = this->_fds[i].events;
@@ -709,7 +725,8 @@ int Server::no_arg(struct msg msg, std::list<pollfd>::iterator it,
 }
 
 int Server::one_arg(struct msg msg, std::list<pollfd>::iterator it,
-    std::list<clients>::iterator it_cli ){
+std::list<clients>::iterator it_cli ){
+    (void)it;
     if(msg.cmd.find("PASS") != std::string::npos)
         it_cli->password = msg.args;
     if(msg.cmd.find("NICK") != std::string::npos)
@@ -718,14 +735,15 @@ int Server::one_arg(struct msg msg, std::list<pollfd>::iterator it,
 }
 
 int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
-    std::list<clients>::iterator it_cli ){
+std::list<clients>::iterator it_cli ){
 	int pos;
+    (void)it;
 	std::string delimiter = ",";
 	std::string temp;
 	std::string temp2;
-	if(msg.cmd.find("JOIN") != std::string::npos){
+	if(msg.cmd.find("JOIN") != (unsigned long)std::string::npos){
 		if(msg.args.find(delimiter) != std::string::npos){
-		while ((pos = msg.args.find(delimiter)) != std::string::npos) { // splitting using spaces
+		while ((pos = msg.args.find(delimiter)) != (int)std::string::npos) { // splitting using spaces
 			temp = msg.args.substr(0, pos);
 			commandJOIN(it_cli, temp);
     		msg.args.erase(0, pos + delimiter.length());
@@ -738,7 +756,7 @@ int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
 	}
 	if(msg.cmd.find("PART") != std::string::npos){
 		if(msg.args.find(delimiter) != std::string::npos){
-		while ((pos = msg.args.find(delimiter)) != std::string::npos) { // splitting using spaces
+		while ((pos = msg.args.find(delimiter)) != (int)std::string::npos) { // splitting using spaces
 			temp = msg.args.substr(0, pos);
 			commandPART(it_cli, temp);
     		msg.args.erase(0, pos + delimiter.length());
@@ -750,12 +768,12 @@ int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
 		}
 	}
 	if(msg.cmd.find("PRIVMSG") != std::string::npos){
-		if ((pos = msg.args.find(" ")) != std::string::npos) { // splitting using spaces
+		if ((pos = msg.args.find(" ")) != (int)std::string::npos) { // splitting using spaces
 			temp = msg.args.substr(0, pos);
     		msg.args.erase(0, pos + 1);
 		}
 		if(temp.find(",") != std::string::npos){
-		while ((pos = temp.find(",")) != std::string::npos) { // splitting using spaces
+		while ((pos = temp.find(",")) != (int)std::string::npos) { // splitting using spaces
 			temp2 = msg.args.substr(0, pos);
 			commandPRIVMSG(it_cli, (temp2 + " " + msg.args));
     		temp.erase(0, pos + 1);
@@ -769,7 +787,7 @@ int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
 	}
 	if(msg.cmd.find("LIST") != std::string::npos){
 		if(msg.args.find(",") != std::string::npos){
-		while ((pos = msg.args.find(",")) != std::string::npos) { // splitting using spaces
+		while ((pos = msg.args.find(",")) != (int)std::string::npos) { // splitting using spaces
 			temp2 = msg.args.substr(0, pos);
 			commandLIST(msg.cmd + " " + msg.args, it_cli);
     		msg.args.erase(0, pos + 1);
@@ -780,7 +798,7 @@ int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
 		commandNOTICE(it_cli, msg.cmd + " " + msg.args);
 	}
 	if(msg.cmd.find("MODE") != std::string::npos){
-		if ((pos = msg.args.find(" ")) != std::string::npos) { // splitting using spaces
+		if ((pos = msg.args.find(" ")) != (int)std::string::npos) { // splitting using spaces
 			temp = msg.args.substr(0, pos);
     		msg.args.erase(0, pos + 1);
 		}
@@ -792,7 +810,7 @@ int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
 		commandKICK(msg.cmd + " " + msg.args, it_cli);
 	}
 	if(msg.cmd.find("OPER") != std::string::npos){
-		if ((pos = msg.args.find(" ")) != std::string::npos) { // splitting using spaces
+		if ((pos = msg.args.find(" ")) != (int)std::string::npos) { // splitting using spaces
 			temp = msg.args.substr(0, pos);
     		msg.args.erase(0, pos + 1);
 		}
@@ -844,7 +862,7 @@ void Server::global_parsing(std::string s, std::list<pollfd>::iterator it,
 	*this->_msg.result[i] = s;
 	i = choose_option(*this->_msg.result[1]);
 	if(i == -1){
-		std::cout << "error: command not found." << std::endl;
+        std::cout << "\033[1;31merror: command not found.\033[0m" << std::endl;
 		return ;
 	}
 	int (Server::*options_ft[4])(struct msg, std::list<pollfd>::iterator, std::list<clients>::iterator) = { &Server::no_arg, &Server::one_arg, &Server::multiple_args };
