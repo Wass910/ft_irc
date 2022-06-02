@@ -38,6 +38,7 @@ void Server::addUser()
     new_cli.nb_msg = 0;
 	this->_clients == 0 ? new_cli.oper = 1 : new_cli.oper = 0;
 	new_cli.invisible = 0;
+	new_cli.connected = 0;
     std::cout << "USER[" << new_cli.socket << "]->[" << inet_ntoa(new_cli.addrClient.sin_addr) <<"] connected." << std::endl;
 	new_fd.fd = new_cli.socket;
 	new_fd.events = POLLIN;
@@ -556,13 +557,21 @@ void Server::commandOPER( std::list<clients>::iterator it_cli, std::string usern
 	return ;
 }
 
+void Server::wlcm_msg(std::list<clients>::iterator it_cli){
+			std::string _wlcmsg = ":127.0.0.1 375 " +  it_cli->username + " ::- 127.0.0.1 Message of the day -\r\n";
+			std::string _wlcmsg2 = ":127.0.0.1 376 " +  it_cli->username + " ::End of /MOTD command\r\n";
+    
+        	send(it_cli->socket, _wlcmsg.c_str(), _wlcmsg.size(), 0);
+        	send(it_cli->socket, _wlcmsg2.c_str(), _wlcmsg2.size(), 0);
+        	it_cli->nb_msg++;
+}
+
 void Server::servListen(std::list<pollfd>::iterator it) 
 {
     char rec_char[500];
     std::string temp;
     int rec;
 	std::vector<std::string>::iterator it_cmd;
-
     if(it->revents & POLLIN){
         for(int i = 0; i < 500; i++){
             rec_char[i] ^= rec_char[i];
@@ -571,34 +580,45 @@ void Server::servListen(std::list<pollfd>::iterator it)
         temp.assign(rec_char);
         delete_clrf(temp);
         it_cmd = this->cmd.begin();
-        std::list<clients>::iterator it_cli = this->_user_data.begin();  
-        while (it_cli->socket != it->fd)
+		if(it_cmd == this->cmd.end())
+			return ;
+        std::list<clients>::iterator it_cli = this->_user_data.begin();
+		while (it_cli->socket != it->fd)
             it_cli++;
-		while(it_cmd != this->cmd.end()){
-			if(it_cmd->find("USER") != std::string::npos){
-				setup_host(*it_cmd, it_cli);
+		while(it_cmd != this->cmd.end() && it_cli->connected < 3){
+			std::cout << it_cli->connected << std::endl;
+			if(it_cmd->find("NICK") != std::string::npos && it_cli->connected == 1){
+				parser(*it_cmd, it, it_cli);
+				it_cli->connected++;
 			}
-            else
-			    parser(*it_cmd, it, it_cli);
+			if(it_cmd->find("PASS") != std::string::npos && it_cli->connected == 0){
+				parser(*it_cmd, it, it_cli);
+				if(it_cli->password == this->_passwd)
+					it_cli->connected++;
+				else{
+					std::string wrong_pass = "error: wrong password. try reconnecting with a correct password.\r\n";
+            		send(it_cli->socket, wrong_pass.c_str(), wrong_pass.size(), 0);
+				}
+			}
+			if(it_cmd->find("USER") != std::string::npos && it_cli->connected == 2){
+				setup_host(*it_cmd, it_cli);
+				it_cli->connected = 4;
+				wlcm_msg(it_cli);
+			}
+			it_cmd++;
+			if(it_cmd == this->cmd.end()){
+				this->cmd.clear();
+				return ;
+			}
+		}
+		if(it_cli->connected == 4){
+		while(it_cmd != this->cmd.end()){
+			parser(*it_cmd, it, it_cli);
 			if(it_cmd->find("QUIT") != std::string::npos)
 				return ;
             it_cmd->clear();
 			it_cmd++;
-		}
-		if (it_cli->password == this->_passwd && it_cli->nb_msg == 0)
-    	{
-        	std::string _wlcmsg = ":127.0.0.1 375 " +  it_cli->username + " ::- 127.0.0.1 Message of the day -\r\n";
-			std::string _wlcmsg2 = ":127.0.0.1 376 " +  it_cli->username + " ::End of /MOTD command\r\n";
-    
-        	send(it_cli->socket, _wlcmsg.c_str(), _wlcmsg.size(), 0);
-        	send(it_cli->socket, _wlcmsg2.c_str(), _wlcmsg2.size(), 0);
-        	it_cli->nb_msg++;
-    	}
-		if(it_cli->password != "" && it_cli->password != this->_passwd){
-            std::string wrong_pass = "error: wrong password. try reconnecting with a correct password.\r\n";
-            send(it_cli->socket, wrong_pass.c_str(), wrong_pass.size(), 0);
-            //call quit command ? or ask for another password with a custom message
-        }
+		}}
 		if(rec == 0)
             commandQUIT("QUIT", it_cli, it);
     }
@@ -663,14 +683,12 @@ void Server::display_fds( void )
 
 int Server::no_arg(struct msg msg, std::list<pollfd>::iterator it,
     std::list<clients>::iterator it_cli ){
-	std::cout << "appear in no_arg" << std::endl;
     commandQUIT(msg.cmd + " " + msg.args, it_cli, it);
 	return 0;
 }
 
 int Server::one_arg(struct msg msg, std::list<pollfd>::iterator it,
     std::list<clients>::iterator it_cli ){
-	std::cout << "appear in one_arg: " << msg.cmd << std::endl;
     if(msg.cmd.find("PASS") != std::string::npos)
         it_cli->password = msg.args;
     if(msg.cmd.find("NICK") != std::string::npos)
@@ -680,7 +698,6 @@ int Server::one_arg(struct msg msg, std::list<pollfd>::iterator it,
 
 int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
     std::list<clients>::iterator it_cli ){
-	std::cout << "appear in multiple_args" << std::endl;
 	int pos;
 	std::string delimiter = ",";
 	std::string temp;
@@ -695,7 +712,6 @@ int Server::multiple_args(struct msg msg, std::list<pollfd>::iterator it,
 		commandJOIN(it_cli, msg.args);
 		}
 		else{
-			std::cout << "ELSE" << std::endl;
 			commandJOIN(it_cli, msg.args);
 		}
 	}
