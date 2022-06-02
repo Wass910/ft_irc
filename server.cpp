@@ -251,12 +251,12 @@ void Server::commandJOIN( std::list<clients>::iterator it_cli, std::string it )
         {
             for (std::list<int>::iterator socket_in_channel = to_send->client_socket.begin(); socket_in_channel != to_send->client_socket.end(); socket_in_channel++){
                 if (it_cli->socket != *socket_in_channel){
-                    channel_count = ":127.0.0.1 353 " + it_cli->username + " " + channel_name + " :+" + it_cli->username + "\r\n";
-                    send(*socket_in_channel, channel_count.c_str() , channel_count.size(), 0);
-                    channel_count.clear();
-                    channel_count = ":127.0.0.1 366 " + it_cli->username + " " + channel_name + " :End of /NAMES list\r\n";
-                    send(*socket_in_channel, channel_count.c_str() , channel_count.size(), 0);
-                    channel_count.clear();
+                    //channel_count = ":127.0.0.1 353 " + it_cli->username + " " + channel_name + " :+" + it_cli->username + "\r\n";
+                    //send(*socket_in_channel, channel_count.c_str() , channel_count.size(), 0);
+                    //channel_count.clear();
+                    //channel_count = ":127.0.0.1 366 " + it_cli->username + " " + channel_name + " :End of /NAMES list\r\n";
+                    //send(*socket_in_channel, channel_count.c_str() , channel_count.size(), 0);
+                    //channel_count.clear();
                     send(*socket_in_channel, it.c_str() , it.size(), 0);
                 }
 				std::cout << "socket_in_channel" <<  *socket_in_channel << std::endl;
@@ -265,14 +265,8 @@ void Server::commandJOIN( std::list<clients>::iterator it_cli, std::string it )
         }
     }
     it.clear();
-    for (std::list<clients>::iterator all = this->_user_data.begin(); all != this->_user_data.end(); all++)
-    {
-        if (is_in_the_channel(all->channel, channel_name) == true){
-            it = ":127.0.0.1 353 " + it_cli->username + " " + channel_name + " :" + all->username + "\r\n";
-            send(it_cli->socket, it.c_str() , it.size(), 0);
-            it.clear();
-        }
-    }
+    it = ":127.0.0.1 353 " + it_cli->username + " " + channel_name + " :" + it_cli->username + "\r\n";
+    send(it_cli->socket, it.c_str() , it.size(), 0);
     it.clear();
     it = ":127.0.0.1 366 " + it_cli->username + " " + channel_name + " :End of /NAMES list\r\n";
     send(it_cli->socket, it.c_str() , it.size(), 0);
