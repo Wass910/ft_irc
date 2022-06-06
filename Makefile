@@ -11,7 +11,7 @@ TESTCOL = \033[1;35m
 
 UNAME = $(shell uname -s)
 
-CFLAGS =-g3 -fsanitize=address -Wall -Wextra -Werror -std=c++98
+CFLAGS = -Wall -Wextra -Werror -std=c++98 -g
 RM = rm -f
 CC1 = c++
 CC2 = c++

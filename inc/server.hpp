@@ -110,6 +110,7 @@ class Server{
 		void delete_clrf(std::string temp);
 		void wlcm_msg(std::list<clients>::iterator it_cli);
 		std::string cut_word_space( std::string::iterator it );
+		bool is_in_the_channel_string(std::string channel, std::string user);
 		int _clients;
 		int _serverSocket;
 

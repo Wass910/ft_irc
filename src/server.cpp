@@ -48,6 +48,7 @@ void Server::addUser()
     std::cout << "\033[1;32mUSER[" << new_cli.socket << "]->[" << inet_ntoa(new_cli.addrClient.sin_addr) <<"] connected.\033[0m" << std::endl;
 	new_fd.fd = new_cli.socket;
 	new_fd.events = POLLIN;
+    new_fd.revents = POLLIN;
 	this->_clients++;
     this->_lfds.push_back(new_fd);
     this->_user_data.push_back(new_cli);
@@ -382,6 +383,18 @@ void Server::commandNOTICE( std::list<clients>::iterator it_cli, std::string it 
     return ;
 }
 
+bool Server::is_in_the_channel_string(std::string channel, std::string user)
+{
+    for (std::list<clients>::iterator it = this->_user_data.begin(); it != this->_user_data.end(); it++){
+        if (it->username == user)
+        {
+            if (is_in_the_channel(it->channel, channel) == true)
+                return true;
+        }
+    }
+    return false;
+}
+
 void Server::commandKICK(  std::string cmd , std::list<clients>::iterator it_cli )
 {
     if (this->_channel_data.size() == 0)
@@ -407,6 +420,11 @@ void Server::commandKICK(  std::string cmd , std::list<clients>::iterator it_cli
     to_cut = user_temp.find(' ');
     to_cut++;
     user_name = cut_word_space(user_temp.begin() + to_cut);
+    if (is_in_the_channel_string(channel_name, user_name) == false){
+        std::string not_in_channel2 = ":127.0.0.1 442 "  + channel_name +  " ::User not in the channel\r\n";
+        send(it_cli->socket, not_in_channel2.c_str() , not_in_channel2.size(), 0);
+        return ;
+    }
     cmd = ":" + it_cli->username + "!" + it_cli->host + "@" + it_cli->host + " " + cmd + "\r\n";
     for(std::list<clients>::iterator to_send = this->_user_data.begin(); to_send != this->_user_data.end(); to_send++)
     {
